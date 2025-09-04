@@ -16,6 +16,7 @@ class SessionManager(context: Context) {
         private const val KEY_USER_EMAIL = "userEmail"
         private const val KEY_USER_NAME = "userName"
         private const val KEY_ID_TOKEN = "idToken"
+        private const val KEY_SPORTS_CLUB_ID = "sportsClubId"
     }
 
     fun saveSession(account: GoogleSignInAccount) {
@@ -48,4 +49,12 @@ class SessionManager(context: Context) {
     }
 
     fun getIdToken(): String? = prefs.getString(KEY_ID_TOKEN, null)
+
+    fun getSportsClubId(): String? = prefs.getString(KEY_SPORTS_CLUB_ID, null)
+
+    fun saveSportsClubId(id: String) {
+        prefs.edit {
+            putString(KEY_SPORTS_CLUB_ID, id)
+        }
+    }
 }

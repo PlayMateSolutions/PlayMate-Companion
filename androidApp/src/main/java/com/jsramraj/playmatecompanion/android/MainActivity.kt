@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.jsramraj.playmatecompanion.android.auth.AuthScreen
+import com.jsramraj.playmatecompanion.android.main.MainScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,8 +28,11 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        // TODO: Show main app content
-                        Text("Successfully authenticated!")
+                        MainScreen(
+                            onLogout = {
+                                isAuthenticated = false
+                            }
+                        )
                     }
                 }
             }

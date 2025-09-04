@@ -22,15 +22,31 @@ fun MyApplicationTheme(
 ) {
     val colors = if (darkTheme) {
         darkColorScheme(
-            primary = Color(0xFFBB86FC),
-            secondary = Color(0xFF03DAC5),
-            tertiary = Color(0xFF3700B3)
+            primary = Color(0xFFDC2626),
+            onPrimary = Color.White,
+            secondary = Color(0xFFDC2626),
+            onSecondary = Color.White,
+            background = Color(0xFF121212),
+            onBackground = Color.White,
+            surface = Color(0xFF121212),
+            onSurface = Color.White,
+            surfaceVariant = Color(0xFF2C2C2C),
+            onSurfaceVariant = Color.White.copy(alpha = 0.7f),
+            outline = Color.White.copy(alpha = 0.2f)
         )
     } else {
         lightColorScheme(
-            primary = Color(0xFF6200EE),
-            secondary = Color(0xFF03DAC5),
-            tertiary = Color(0xFF3700B3)
+            primary = Color(0xFFDC2626),
+            onPrimary = Color.White,
+            secondary = Color(0xFFDC2626),
+            onSecondary = Color.White,
+            background = Color.White,
+            onBackground = Color(0xFF121212),
+            surface = Color.White,
+            onSurface = Color(0xFF121212),
+            surfaceVariant = Color(0xFFF5F5F5),
+            onSurfaceVariant = Color(0xFF666666),
+            outline = Color(0xFFE0E0E0)
         )
     }
     val typography = Typography(
