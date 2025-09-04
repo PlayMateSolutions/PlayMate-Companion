@@ -22,8 +22,18 @@ class AuthViewModel : ViewModel() {
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     private var googleSignInClient: GoogleSignInClient? = null
+    private var sessionManager: SessionManager? = null
 
     fun initGoogleSignIn(context: Context, clientId: String) {
+        // Initialize session manager
+        sessionManager = SessionManager(context)
+        
+        // Check for existing session
+        sessionManager?.getSessionInfo()?.let { savedState ->
+            if (savedState.isSignedIn) {
+                _authState.value = savedState
+            }
+        }
         try {
             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(clientId)
@@ -61,6 +71,9 @@ class AuthViewModel : ViewModel() {
             try {
                 _authState.value = _authState.value.copy(isLoading = true)
                 val account = task.await()
+                // Save to session
+                sessionManager?.saveSession(account)
+                
                 _authState.value = _authState.value.copy(
                     isSignedIn = true,
                     isLoading = false,
@@ -105,6 +118,8 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 googleSignInClient?.signOut()?.await()
+                // Clear session
+                sessionManager?.clearSession()
                 _authState.value = AuthState()
             } catch (e: Exception) {
                 _authState.value = _authState.value.copy(
