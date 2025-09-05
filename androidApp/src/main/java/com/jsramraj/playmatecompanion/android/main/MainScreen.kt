@@ -11,6 +11,9 @@ import androidx.compose.ui.platform.LocalContext
 import com.jsramraj.playmatecompanion.android.auth.SessionManager
 import com.jsramraj.playmatecompanion.android.settings.SettingsScreen
 
+import com.jsramraj.playmatecompanion.android.members.MembersScreen
+import com.jsramraj.playmatecompanion.android.navigation.Screen
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -18,19 +21,34 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
-    var showSettings by remember { mutableStateOf(sessionManager.getSportsClubId().isNullOrEmpty()) }
+    var currentScreen by remember { 
+        mutableStateOf(
+            if (sessionManager.getSportsClubId().isNullOrEmpty()) 
+                Screen.Settings 
+            else 
+                Screen.Main
+        ) 
+    }
 
-    if (showSettings) {
-        SettingsScreen(
-            onLogout = onLogout,
-            onSave = { showSettings = false },
-            onBack = { 
-                if (!sessionManager.getSportsClubId().isNullOrEmpty()) {
-                    showSettings = false 
-                }
-            }
-        )
-    } else {
+    when (currentScreen) {
+        Screen.Settings -> {
+            SettingsScreen(
+                onLogout = onLogout,
+                onSave = { currentScreen = Screen.Main },
+                onBack = { 
+                    if (!sessionManager.getSportsClubId().isNullOrEmpty()) {
+                        currentScreen = Screen.Main
+                    }
+                },
+                onNavigateToMembers = { currentScreen = Screen.Members }
+            )
+        }
+        Screen.Members -> {
+            MembersScreen(
+                onBack = { currentScreen = Screen.Settings }
+            )
+        }
+        Screen.Main -> {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -50,7 +68,7 @@ fun MainScreen(
                             )
                         }
                         // Settings button
-                        IconButton(onClick = { showSettings = true }) {
+                        IconButton(onClick = { currentScreen = Screen.Settings }) {
                             Icon(
                                 Icons.Default.Settings,
                                 contentDescription = "Settings",
@@ -74,4 +92,4 @@ fun MainScreen(
             }
         }
     }
-}
+}}

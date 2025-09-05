@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.navigation.compose)
     implementation("com.google.code.gson:gson:2.10.1")
     debugImplementation(libs.compose.ui.tooling)
 }

@@ -35,7 +35,8 @@ private fun SectionHeader(text: String) {
 fun SettingsScreen(
     onLogout: () -> Unit,
     onSave: () -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onNavigateToMembers: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
@@ -89,6 +90,28 @@ fun SettingsScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Members Section
+            SectionHeader(text = "Members")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                FilledTonalButton(
+                    onClick = onNavigateToMembers,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("View Members List")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
+
             // Club Settings Section
             SectionHeader(text = "Club Settings")
             Column(
