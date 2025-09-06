@@ -20,6 +20,7 @@ import kotlin.math.abs
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.utils.AvatarColorUtil
+import com.jsramraj.playmatecompanion.android.utils.MembershipStatusUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -100,115 +101,134 @@ fun AttendanceCard(record: AttendanceWithMember) {
     val timeFormatter = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
     val initial = record.memberName.firstOrNull()?.uppercaseChar() ?: '?'
     val avatarColor = remember(initial) { AvatarColorUtil.getColorForLetter(initial) }
-    
+
+    // Determine expiry status for color highlighting
+    val daysUntilExpiry = record.attendance.daysToExpiry
+
+    // Get status color from utility
+    val statusColor = MembershipStatusUtil.getStatusColor(daysUntilExpiry)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .padding(vertical = 1.dp),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Member initial with background
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(20.dp),
-                color = avatarColor
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // Left vertical line - color indicates membership status
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .fillMaxHeight()
+                    .background(statusColor)
+            )
+
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                // Member initial with background
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = avatarColor
                 ) {
-                    Text(
-                        text = initial.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            // Attendance details
-            Column(modifier = Modifier.weight(1f)) {
-                // First row: Member ID and Name
-                Text(
-                    text = "#${record.attendance.memberId} - ${record.memberName}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                // Second row: Check-in/out times
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "In: ${timeFormatter.format(record.attendance.checkInTime)}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    record.attendance.checkOutTime?.let { checkOutTime ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "Out: ${timeFormatter.format(checkOutTime)}",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = initial.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
-            }
-            
-            // Status indicator
-            val isToday = remember(record.attendance.date) {
-                val cal1 = Calendar.getInstance()
-                cal1.time = record.attendance.date
-                cal1.set(Calendar.HOUR_OF_DAY, 0)
-                cal1.set(Calendar.MINUTE, 0)
-                cal1.set(Calendar.SECOND, 0)
-                cal1.set(Calendar.MILLISECOND, 0)
 
-                val cal2 = Calendar.getInstance()
-                cal2.set(Calendar.HOUR_OF_DAY, 0)
-                cal2.set(Calendar.MINUTE, 0)
-                cal2.set(Calendar.SECOND, 0)
-                cal2.set(Calendar.MILLISECOND, 0)
+                Spacer(modifier = Modifier.width(12.dp))
 
-                cal1.timeInMillis == cal2.timeInMillis
-            }
+                // Attendance details
+                Column(modifier = Modifier.weight(1f)) {
+                    // First row: Member ID and Name
+                    Text(
+                        text = "#${record.attendance.memberId} - ${record.memberName}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            if (isToday && record.attendance.checkOutTime == null) {
-                // Green dot for currently in gym (today only)
-                Box(
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .size(8.dp)
-                        .background(
-                            color = Color(0xFF4CAF50), // Material Green
-                            shape = CircleShape
+                    // Second row: Check-in/out times
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "In: ${timeFormatter.format(record.attendance.checkInTime)}",
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                        .align(Alignment.CenterVertically)
-                )
-            } else if (!isToday && record.attendance.checkOutTime == null) {
-                // Amber dot for missing checkout (past dates)
-                Box(
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .size(8.dp)
-                        .background(
-                            color = Color(0xFFFFA000), // Material Amber
-                            shape = CircleShape
-                        )
-                        .align(Alignment.CenterVertically)
-                )
-            } else {
-                // No indicator for checked out records
-                Spacer(
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .width(8.dp)
-                )
+                        record.attendance.checkOutTime?.let { checkOutTime ->
+                            Text(
+                                text = "Out: ${timeFormatter.format(checkOutTime)}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+
+                // Status indicator
+                val isToday = remember(record.attendance.date) {
+                    val cal1 = Calendar.getInstance()
+                    cal1.time = record.attendance.date
+                    cal1.set(Calendar.HOUR_OF_DAY, 0)
+                    cal1.set(Calendar.MINUTE, 0)
+                    cal1.set(Calendar.SECOND, 0)
+                    cal1.set(Calendar.MILLISECOND, 0)
+
+                    val cal2 = Calendar.getInstance()
+                    cal2.set(Calendar.HOUR_OF_DAY, 0)
+                    cal2.set(Calendar.MINUTE, 0)
+                    cal2.set(Calendar.SECOND, 0)
+                    cal2.set(Calendar.MILLISECOND, 0)
+
+                    cal1.timeInMillis == cal2.timeInMillis
+                }
+
+                if (isToday && record.attendance.checkOutTime == null) {
+                    // Green dot for currently in gym (today only)
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(8.dp)
+                            .background(
+                                color = Color(0xFF4CAF50), // Material Green
+                                shape = CircleShape
+                            )
+                            .align(Alignment.CenterVertically)
+                    )
+                } else if (!isToday && record.attendance.checkOutTime == null) {
+                    // Amber dot for missing checkout (past dates)
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(8.dp)
+                            .background(
+                                color = Color(0xFFFFA000), // Material Amber
+                                shape = CircleShape
+                            )
+                            .align(Alignment.CenterVertically)
+                    )
+                } else {
+                    // No indicator for checked out records
+                    Spacer(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .width(8.dp)
+                    )
+                }
             }
         }
     }

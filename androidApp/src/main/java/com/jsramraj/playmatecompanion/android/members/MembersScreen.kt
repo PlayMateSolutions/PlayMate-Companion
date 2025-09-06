@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.R
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.jsramraj.playmatecompanion.android.utils.MembershipStatusUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -239,12 +240,8 @@ fun MemberCard(member: Member) {
     val expiryDate = member.expiryDate.time
     val daysUntilExpiry = ((expiryDate - now) / (1000 * 60 * 60 * 24)).toInt()
     
-    // Color based on expiry date - updated logic
-    val statusColor = when {
-        daysUntilExpiry < 0 -> MaterialTheme.colorScheme.error // Red for expired
-        daysUntilExpiry <= 7 -> Color(0xFFF57C00) // Amber for expiring within 7 days
-        else -> Color(0xFF4CAF50) // Explicit green for valid membership
-    }
+    // Get status color from utility
+    val statusColor = MembershipStatusUtil.getStatusColor(daysUntilExpiry)
     
     Card(
         modifier = Modifier
