@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -101,6 +101,23 @@ fun AttendanceCard(record: AttendanceWithMember) {
     val timeFormatter = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
     val initial = record.memberName.firstOrNull()?.uppercaseChar() ?: '?'
     val avatarColor = remember(initial) { AvatarColorUtil.getColorForLetter(initial) }
+    
+    val isToday = remember(record.attendance.date) {
+        val cal1 = Calendar.getInstance()
+        cal1.time = record.attendance.date
+        cal1.set(Calendar.HOUR_OF_DAY, 0)
+        cal1.set(Calendar.MINUTE, 0)
+        cal1.set(Calendar.SECOND, 0)
+        cal1.set(Calendar.MILLISECOND, 0)
+
+        val cal2 = Calendar.getInstance()
+        cal2.set(Calendar.HOUR_OF_DAY, 0)
+        cal2.set(Calendar.MINUTE, 0)
+        cal2.set(Calendar.SECOND, 0)
+        cal2.set(Calendar.MILLISECOND, 0)
+
+        cal1.timeInMillis == cal2.timeInMillis
+    }
 
     // Determine expiry status for color highlighting
     val daysUntilExpiry = record.attendance.daysToExpiry
@@ -153,23 +170,75 @@ fun AttendanceCard(record: AttendanceWithMember) {
                 Spacer(modifier = Modifier.width(12.dp))
 
                 // Attendance details
-                Column(modifier = Modifier.weight(1f)) {
-                    // First row: Member ID and Name
-                    Text(
-                        text = "#${record.attendance.memberId} - ${record.memberName}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Member name and status dot in first column
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Text(
+                                text = record.memberName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            if (record.attendance.checkOutTime == null) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                if (isToday) {
+                                    // Green dot for currently in gym (today only)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = Color(0xFF4CAF50), // Material Green
+                                                shape = CircleShape
+                                            )
+                                    )
+                                } else {
+                                    // Amber dot for missing checkout (past dates)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = Color(0xFFFFA000), // Material Amber
+                                                shape = CircleShape
+                                            )
+                                    )
+                                }
+                            }
+                        }
 
-                    // Second row: Check-in/out times
+                        // Warning icon at the end
+                        if (!record.attendance.synced) {
+                            Icon(
+                                imageVector = Icons.Outlined.Warning,
+                                contentDescription = "Not synced",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    // Check-in/out times
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "In: ${timeFormatter.format(record.attendance.checkInTime)}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "In: ${timeFormatter.format(record.attendance.checkInTime)}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
                         record.attendance.checkOutTime?.let { checkOutTime ->
                             Text(
                                 text = "Out: ${timeFormatter.format(checkOutTime)}",
@@ -177,57 +246,46 @@ fun AttendanceCard(record: AttendanceWithMember) {
                             )
                         }
                     }
-                }
 
-                // Status indicator
-                val isToday = remember(record.attendance.date) {
-                    val cal1 = Calendar.getInstance()
-                    cal1.time = record.attendance.date
-                    cal1.set(Calendar.HOUR_OF_DAY, 0)
-                    cal1.set(Calendar.MINUTE, 0)
-                    cal1.set(Calendar.SECOND, 0)
-                    cal1.set(Calendar.MILLISECOND, 0)
-
-                    val cal2 = Calendar.getInstance()
-                    cal2.set(Calendar.HOUR_OF_DAY, 0)
-                    cal2.set(Calendar.MINUTE, 0)
-                    cal2.set(Calendar.SECOND, 0)
-                    cal2.set(Calendar.MILLISECOND, 0)
-
-                    cal1.timeInMillis == cal2.timeInMillis
-                }
-
-                if (isToday && record.attendance.checkOutTime == null) {
-                    // Green dot for currently in gym (today only)
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(8.dp)
-                            .background(
-                                color = Color(0xFF4CAF50), // Material Green
-                                shape = CircleShape
-                            )
-                            .align(Alignment.CenterVertically)
-                    )
-                } else if (!isToday && record.attendance.checkOutTime == null) {
-                    // Amber dot for missing checkout (past dates)
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(8.dp)
-                            .background(
-                                color = Color(0xFFFFA000), // Material Amber
-                                shape = CircleShape
-                            )
-                            .align(Alignment.CenterVertically)
-                    )
-                } else {
-                    // No indicator for checked out records
-                    Spacer(
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .width(8.dp)
-                    )
+                    // Missing checkout warning for past dates
+                    if (!isToday && record.attendance.checkOutTime == null) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(8.dp)
+                                .background(
+                                    color = Color(0xFFFFA000), // Material Amber
+                                    shape = CircleShape
+                                )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(8.dp)
+                                .background(
+                                    color = Color(0xFF4CAF50), // Material Green
+                                    shape = CircleShape
+                                )
+                        )
+                    } else if (!isToday && record.attendance.checkOutTime == null) {
+                        // Amber dot for missing checkout (past dates)
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(8.dp)
+                                .background(
+                                    color = Color(0xFFFFA000), // Material Amber
+                                    shape = CircleShape
+                                )
+                        )
+                    } else {
+                        // No indicator for checked out records
+                        Spacer(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .width(8.dp)
+                        )
+                    }
                 }
             }
         }
