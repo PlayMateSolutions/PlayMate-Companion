@@ -144,14 +144,75 @@ fun MembersScreen(
                         }
                     }
                 } else {
-                    // Member list
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp) // Add spacing between items
-                    ) {
-                        items(members) { member ->
-                            MemberCard(member = member)
+                    // Member list with sorting options
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Sorting options
+                        val currentSortOption by viewModel.sortOption.collectAsState()
+                        val currentSortDirection by viewModel.sortDirection.collectAsState()
+                        val primaryRed = Color(0xFFdc2626)
+                        
+                        // Sort options row
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Sort by:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            
+                            // Sort buttons in a row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Sort buttons
+                                SortOption.values().forEach { option ->
+                                    Button(
+                                        onClick = { viewModel.setSortOption(option) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(40.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (currentSortOption == option) primaryRed else Color.LightGray,
+                                            contentColor = if (currentSortOption == option) Color.White else Color.Black
+                                        ),
+                                        shape = RoundedCornerShape(20.dp) // Perfect pill shape
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = option.displayName,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            
+                                            // Only show arrow for the currently selected option
+                                            if (currentSortOption == option) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = if (currentSortDirection == SortDirection.ASCENDING) "↑" else "↓",
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Member list
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(members) { member ->
+                                MemberCard(member = member)
+                            }
                         }
                     }
                 }
@@ -217,8 +278,8 @@ fun MemberCard(member: Member) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "#${member.id}",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "${member.id}",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

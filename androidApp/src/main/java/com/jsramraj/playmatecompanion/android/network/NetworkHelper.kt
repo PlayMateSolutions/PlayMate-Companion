@@ -32,7 +32,7 @@ class NetworkHelper(private val context: Context) {
 
                     val url =
                             URL(
-                                    "${Constants.BASE_URL}?sportsClubId=$clubId&action=getMembers"
+                                    "${Constants.BASE_URL}?sportsClubId=$clubId&action=getMembers&authorization=Bearer $token"
                             )
                     val connection = url.openConnection() as HttpURLConnection
 
@@ -40,7 +40,6 @@ class NetworkHelper(private val context: Context) {
                         requestMethod = "GET"
                         setRequestProperty("Accept", "application/json")
                         setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("Authorization", "Bearer $token")
                         instanceFollowRedirects = true
                     }
 
