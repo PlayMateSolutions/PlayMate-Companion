@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.attendance.AttendanceViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +38,6 @@ fun HomeScreen(
     
     // Auto-focus for the input field
     val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
     
     // Remember if snackbar is showing
     var showSnackbar by remember { mutableStateOf(false) }
@@ -47,11 +47,13 @@ fun HomeScreen(
         focusRequester.requestFocus()
     }
     
-    // Show snackbar when message changes
+    // Show snackbar when error message changes
     LaunchedEffect(message) {
-        if (message != null) {
+        if (message != null && message?.startsWith("Error") == true) {
             showSnackbar = true
         }
+        // Always request focus to keep the input field active
+        focusRequester.requestFocus()
     }
 
     Scaffold(
@@ -149,13 +151,14 @@ fun HomeScreen(
                             },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Text,
+                                keyboardType = KeyboardType.Number,
                                 imeAction = ImeAction.Done
                             ),
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     attendanceViewModel.processAttendance()
-                                    focusManager.clearFocus()
+                                    // Keep focus on the input field for the next entry
+                                    focusRequester.requestFocus()
                                 }
                             ),
                             isError = message?.startsWith("Error") == true
@@ -166,7 +169,8 @@ fun HomeScreen(
                         Button(
                             onClick = {
                                 attendanceViewModel.processAttendance()
-                                focusManager.clearFocus()
+                                // Keep focus on the input field for the next entry
+                                focusRequester.requestFocus()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -190,29 +194,114 @@ fun HomeScreen(
                     }
                 }
                 
-                // Additional content can go here
+                // Welcome card for the member who just logged in
+                val welcomeInfo by attendanceViewModel.welcomeInfo.collectAsState()
+                
+                // Auto-dismiss welcome card after 5 seconds
+                LaunchedEffect(welcomeInfo) {
+                    if (welcomeInfo != null) {
+                        kotlinx.coroutines.delay(5000) // 5 seconds
+                        attendanceViewModel.clearWelcomeInfo()
+                        focusRequester.requestFocus()
+                    }
+                }
+                
+                if (welcomeInfo != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (welcomeInfo!!.isCheckIn) Color(0xFFE0F7FA) else Color(0xFFFFECB3)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = if (welcomeInfo!!.isCheckIn) 
+                                    "Welcome, ${welcomeInfo!!.memberName}!" 
+                                else 
+                                    "Goodbye, ${welcomeInfo!!.memberName}!",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = "Member ID: ${welcomeInfo!!.memberId}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.DarkGray
+                            )
+                            
+                            val dateFormat = remember { java.text.SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+                            Text(
+                                text = if (welcomeInfo!!.isCheckIn) 
+                                    "Check-in time: ${dateFormat.format(welcomeInfo!!.timestamp)}"
+                                else
+                                    "Check-out time: ${dateFormat.format(welcomeInfo!!.timestamp)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.DarkGray
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = { 
+                                        attendanceViewModel.clearWelcomeInfo()
+                                        // Ensure focus is back on the input field
+                                        focusRequester.requestFocus()
+                                    }
+                                ) {
+                                    Text("DISMISS")
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 Spacer(modifier = Modifier.weight(1f))
             }
             
-            // Snackbar for messages
-            if (showSnackbar && message != null) {
+            // Message display (above the keyboard) - only show error messages here
+            if (showSnackbar && message != null && message?.startsWith("Error") == true) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Snackbar(
-                        action = {
-                            TextButton(onClick = {
-                                showSnackbar = false
-                                attendanceViewModel.clearMessage()
-                            }) {
-                                Text("Dismiss")
-                            }
-                        },
-                        modifier = Modifier.padding(bottom = 16.dp)
+                    Card(
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFDAD6)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = message ?: "")
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = message ?: "",
+                                modifier = Modifier.weight(1f),
+                                color = Color.Red
+                            )
+                            TextButton(
+                                onClick = {
+                                    showSnackbar = false
+                                    attendanceViewModel.clearMessage()
+                                }
+                            ) {
+                                Text("OK")
+                            }
+                        }
                     }
                 }
             }

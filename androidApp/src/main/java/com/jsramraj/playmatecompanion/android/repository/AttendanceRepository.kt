@@ -87,21 +87,7 @@ class AttendanceRepository(context: Context) {
         }
     }
     
-    // Log attendance by phone number
-    suspend fun logAttendanceByPhone(phone: String): Result<Attendance> = withContext(Dispatchers.IO) {
-        try {
-            // Find member by phone
-            val member = memberDao.getMemberByPhone(phone)
-                ?: return@withContext Result.failure(Exception("Member not found with phone: $phone"))
-            
-            // Use the memberId to log attendance
-            return@withContext logAttendance(member.id)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    // Convenience method to log attendance by identifier (ID or phone)
+    // Main method to log attendance by identifier (ID or phone)
     suspend fun logAttendanceByIdentifier(identifier: String): Result<Attendance> = withContext(Dispatchers.IO) {
         try {
             // Use the MemberRepository to find a member by either ID or phone number

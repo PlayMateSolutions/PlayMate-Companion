@@ -16,20 +16,11 @@ interface MemberDao {
     @Query("SELECT * FROM members WHERE id = :id")
     suspend fun getMemberById(id: Long): MemberEntity?
     
-    @Query("SELECT * FROM members WHERE phone = :phone")
-    suspend fun getMemberByPhone(phone: String): MemberEntity?
-    
     @Query("SELECT * FROM members WHERE status LIKE '%' || :status || '%'")
     fun getMembersByStatus(status: String): Flow<List<MemberEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMember(member: MemberEntity)
-    
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMembers(members: List<MemberEntity>)
-    
-    @Delete
-    suspend fun deleteMember(member: MemberEntity)
     
     @Query("DELETE FROM members")
     suspend fun deleteAllMembers()

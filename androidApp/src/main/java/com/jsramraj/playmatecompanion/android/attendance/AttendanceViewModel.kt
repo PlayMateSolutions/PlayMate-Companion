@@ -4,14 +4,25 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jsramraj.playmatecompanion.android.repository.AttendanceRepository
+import com.jsramraj.playmatecompanion.android.repository.MemberRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Date
+
+// Define a data class for the welcome card information
+data class WelcomeCardInfo(
+    val memberId: Long,
+    val memberName: String,
+    val isCheckIn: Boolean,
+    val timestamp: Date
+)
 
 class AttendanceViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AttendanceRepository(application)
+    private val memberRepository = MemberRepository(application)
     
     // Track the input text for the attendance ID/phone
     private val _inputText = MutableStateFlow("")
@@ -24,6 +35,10 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     // Track loading state
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+    
+    // Track the currently shown welcome message with member details
+    private val _welcomeInfo = MutableStateFlow<WelcomeCardInfo?>(null)
+    val welcomeInfo: StateFlow<WelcomeCardInfo?> = _welcomeInfo
     
     // Today's attendance count
     val todayAttendanceCount = repository.getTodayAttendanceCount()
@@ -56,12 +71,30 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                 
                 result.fold(
                     onSuccess = { attendance ->
-                        val checkOutTime = attendance.checkOutTime
-                        if (checkOutTime != null) {
-                            _message.value = "Check-out recorded for member #${attendance.memberId}"
+                        // Get member details
+                        val member = memberRepository.getMemberById(attendance.memberId)
+                        if (member != null) {
+                            val checkOutTime = attendance.checkOutTime
+                            val isCheckIn = checkOutTime == null
+                            
+                            // Create welcome info
+                            _welcomeInfo.value = WelcomeCardInfo(
+                                memberId = member.id,
+                                memberName = "${member.firstName} ${member.lastName}",
+                                isCheckIn = isCheckIn,
+                                timestamp = if (isCheckIn) attendance.checkInTime else checkOutTime!!
+                            )
+                            
+                            // Set message
+                            if (isCheckIn) {
+                                _message.value = "Welcome, ${member.firstName}! Check-in recorded."
+                            } else {
+                                _message.value = "Goodbye, ${member.firstName}! Check-out recorded."
+                            }
                         } else {
-                            _message.value = "Check-in recorded for member #${attendance.memberId}"
+                            _message.value = "Attendance recorded for member #${attendance.memberId}"
                         }
+                        
                         // Clear the input field on success
                         _inputText.value = ""
                     },
@@ -75,6 +108,11 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                 _isLoading.value = false
             }
         }
+    }
+    
+    // Clear welcome info
+    fun clearWelcomeInfo() {
+        _welcomeInfo.value = null
     }
     
     // Clear message
