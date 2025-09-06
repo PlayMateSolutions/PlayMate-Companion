@@ -1,6 +1,5 @@
 package com.jsramraj.playmatecompanion.android.settings
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,7 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsramraj.playmatecompanion.android.auth.AuthViewModel
 import com.jsramraj.playmatecompanion.android.auth.SessionManager
+import com.jsramraj.playmatecompanion.android.core.Constants
 import com.jsramraj.playmatecompanion.android.utils.AppInfo
 
 @Composable
@@ -43,6 +45,7 @@ fun SettingsScreen(
     val sessionInfo = remember { sessionManager.getSessionInfo() }
     val appVersion = remember { AppInfo.getVersionName(context) }
     var clubId by remember { mutableStateOf(sessionManager.getSportsClubId() ?: "") }
+    val authViewModel: AuthViewModel = viewModel()
 
     Scaffold(
         topBar = {
@@ -202,7 +205,11 @@ fun SettingsScreen(
                     }
                 }
                 TextButton(
-                    onClick = onLogout,
+                    onClick = {
+                        authViewModel.signOut(context) {
+                            onLogout()
+                        }
+                    },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     )

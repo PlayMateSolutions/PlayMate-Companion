@@ -5,6 +5,13 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
     }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.google.devtools.ksp") {
+                useModule("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:${requested.version}")
+            }
+        }
+    }
 }
 
 dependencyResolutionManagement {

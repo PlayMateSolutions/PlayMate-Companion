@@ -10,7 +10,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
+import com.jsramraj.playmatecompanion.android.core.Constants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,9 +40,11 @@ class AuthViewModel : ViewModel() {
             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(clientId)
                 .requestEmail()
-//                .requestProfile()
-//                .requestId()
-                // .requestServerAuthCode(clientId) // This will help verify the configuration
+                .requestProfile()
+                .requestScopes(
+                    Scope("https://www.googleapis.com/auth/spreadsheets"),
+                    Scope("https://www.googleapis.com/auth/script.external_request")
+                )
                 .build()
 
             googleSignInClient = GoogleSignIn.getClient(context, gso)
@@ -125,6 +129,36 @@ class AuthViewModel : ViewModel() {
                 _authState.value = _authState.value.copy(
                     error = "Sign out failed: ${e.message}"
                 )
+            }
+        }
+    }
+    
+    fun signOut(context: Context, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                // Initialize if not already initialized
+                if (googleSignInClient == null) {
+                    initGoogleSignIn(context, com.jsramraj.playmatecompanion.android.core.Constants.GOOGLE_CLIENT_ID)
+                }
+                
+                // Sign out from Google
+                googleSignInClient?.signOut()?.await()
+                
+                // Clear local session
+                sessionManager?.clearSession()
+                
+                // Update state
+                _authState.value = AuthState()
+                
+                // Complete the logout process
+                onComplete()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _authState.value = _authState.value.copy(
+                    error = "Failed to sign out: ${e.message}"
+                )
+                // Still call onComplete even if there's an error
+                onComplete()
             }
         }
     }

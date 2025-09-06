@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
+    id("com.google.devtools.ksp") version "2.0.21-1.0.27"
 }
 
 android {
@@ -48,6 +49,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.navigation.compose)
-    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Accompanist (for SwipeRefresh)
+    implementation(libs.accompanist.swiperefresh)
+    
+    // Room Database
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp("androidx.room:room-compiler:2.5.0")
+    implementation(libs.gson)
     debugImplementation(libs.compose.ui.tooling)
 }
