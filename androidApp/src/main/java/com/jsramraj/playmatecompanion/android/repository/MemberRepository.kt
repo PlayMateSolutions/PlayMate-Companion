@@ -55,4 +55,37 @@ class MemberRepository(
             }
         }
     }
+    
+    // Find member ID by identifier (either ID or phone number)
+    suspend fun findMemberIdByIdentifier(identifier: String): Result<Long> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Use the new DAO method to find a member by either ID or phone in a single query
+                val member = memberDao.findMemberByIdOrPhone(identifier)
+                
+                if (member != null) {
+                    return@withContext Result.success(member.id)
+                }
+                
+                // If not found by either method
+                Result.failure(Exception("No member found with ID or phone: $identifier"))
+            } catch (e: Exception) {
+                Result.failure(Exception("Error finding member: ${e.message}"))
+            }
+        }
+    }
+    
+    // Get member by ID
+    suspend fun getMemberById(id: Long): Member? {
+        return withContext(Dispatchers.IO) {
+            memberDao.getMemberById(id)?.toMember()
+        }
+    }
+    
+    // Get member by identifier (either ID or phone number)
+    suspend fun getMemberByIdentifier(identifier: String): Member? {
+        return withContext(Dispatchers.IO) {
+            memberDao.findMemberByIdOrPhone(identifier)?.toMember()
+        }
+    }
 }

@@ -4,8 +4,8 @@ import com.google.gson.annotations.SerializedName
 import java.util.Date
 
 data class Member(
-    val rowNumber: Int,
-    val id: Int,
+    val rowNumber: Long,
+    val id: Long,
     val firstName: String,
     val lastName: String,
     val email: String,

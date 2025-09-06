@@ -9,8 +9,8 @@ import java.util.Date
 @Entity(tableName = "members")
 data class MemberEntity(
     @PrimaryKey
-    val id: Int,
-    val rowNumber: Int,
+    val id: Long,
+    val rowNumber: Long,
     val firstName: String,
     val lastName: String,
     val email: String,

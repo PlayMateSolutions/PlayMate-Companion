@@ -3,6 +3,7 @@ package com.jsramraj.playmatecompanion.android.network
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.jsramraj.playmatecompanion.android.auth.SessionManager
 import com.jsramraj.playmatecompanion.android.core.Constants
 import com.jsramraj.playmatecompanion.android.members.Member
@@ -45,7 +46,11 @@ class NetworkHelper(private val context: Context) {
 
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
 
-                    val apiResponse = gson.fromJson(response, ApiResponse::class.java)
+//                    val apiResponse = gson.fromJson(response, ApiResponse::class.java)
+                    val apiResponse: ApiResponse<List<Member>> = gson.fromJson(
+                        response,
+                        object : TypeToken<ApiResponse<List<Member>>>() {}.type
+                    )
 
                     if (apiResponse.status == "success") {
                         val members =

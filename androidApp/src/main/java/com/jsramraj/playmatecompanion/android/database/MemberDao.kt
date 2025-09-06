@@ -14,7 +14,10 @@ interface MemberDao {
     fun getAllMembers(): Flow<List<MemberEntity>>
     
     @Query("SELECT * FROM members WHERE id = :id")
-    suspend fun getMemberById(id: Int): MemberEntity?
+    suspend fun getMemberById(id: Long): MemberEntity?
+    
+    @Query("SELECT * FROM members WHERE phone = :phone")
+    suspend fun getMemberByPhone(phone: String): MemberEntity?
     
     @Query("SELECT * FROM members WHERE status LIKE '%' || :status || '%'")
     fun getMembersByStatus(status: String): Flow<List<MemberEntity>>
@@ -30,6 +33,9 @@ interface MemberDao {
     
     @Query("DELETE FROM members")
     suspend fun deleteAllMembers()
+    
+    @Query("SELECT * FROM members WHERE id = :identifier OR phone = :identifier LIMIT 1")
+    suspend fun findMemberByIdOrPhone(identifier: String): MemberEntity?
     
     @Transaction
     suspend fun refreshMembers(members: List<MemberEntity>) {
