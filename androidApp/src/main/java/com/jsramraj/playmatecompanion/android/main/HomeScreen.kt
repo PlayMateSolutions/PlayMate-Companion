@@ -1,6 +1,7 @@
 package com.jsramraj.playmatecompanion.android.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -20,14 +21,19 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.attendance.AttendanceViewModel
 import java.util.Locale
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToSettings: () -> Unit,
+    onNavigateToAttendanceList: () -> Unit,
     attendanceViewModel: AttendanceViewModel = viewModel()
 ) {
     // Collect attendance state
@@ -55,6 +61,9 @@ fun HomeScreen(
         // Always request focus to keep the input field active
         focusRequester.requestFocus()
     }
+    
+    // Keep the screen on while the app is active
+    KeepScreenOn()
 
     Scaffold(
         topBar = {
@@ -66,14 +75,16 @@ fun HomeScreen(
                     ) 
                 },
                 actions = {
-                    // Today's attendance count
+                    // Today's attendance count - clickable to navigate to attendance list
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clickable { onNavigateToAttendanceList() }
                     ) {
                         Icon(
                             Icons.Default.Person,
-                            contentDescription = "Attendance Today",
+                            contentDescription = "View Attendance List",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -83,14 +94,6 @@ fun HomeScreen(
                         )
                     }
                     
-                    // History button
-                    IconButton(onClick = { /* TODO: Open history */ }) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = "History",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
                     // Settings button
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
@@ -307,4 +310,24 @@ fun HomeScreen(
             }
         }
     }
+}
+
+@Composable
+fun KeepScreenOn() {
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val activity = context.findActivity()
+        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+}
+
+// Helper extension to unwrap Context to Activity
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

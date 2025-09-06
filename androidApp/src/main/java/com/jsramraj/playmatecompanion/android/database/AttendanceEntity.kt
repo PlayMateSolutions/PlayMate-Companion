@@ -27,7 +27,7 @@ data class AttendanceEntity(
     val date: String, // ISO 8601 date string: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
     val checkInTime: String, // ISO 8601 date string: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
     val checkOutTime: String?, // ISO 8601 date string: yyyy-MM-dd'T'HH:mm:ss.SSS'Z', nullable
-    val membershipStatus: String,
+    val daysToExpiry: Int,
     val notes: String?,
     val synced: Boolean // Track if the record has been synced to the server
 ) {
@@ -42,7 +42,7 @@ data class AttendanceEntity(
                 date = dateFormat.format(attendance.date),
                 checkInTime = dateFormat.format(attendance.checkInTime),
                 checkOutTime = attendance.checkOutTime?.let { dateFormat.format(it) },
-                membershipStatus = attendance.membershipStatus,
+                daysToExpiry = attendance.daysToExpiry,
                 notes = attendance.notes,
                 synced = attendance.synced
             )
@@ -56,7 +56,7 @@ data class AttendanceEntity(
             date = parseIsoDate(date),
             checkInTime = parseIsoDate(checkInTime),
             checkOutTime = checkOutTime?.let { parseIsoDate(it) },
-            membershipStatus = membershipStatus,
+            daysToExpiry = daysToExpiry,
             notes = notes,
             synced = synced
         )

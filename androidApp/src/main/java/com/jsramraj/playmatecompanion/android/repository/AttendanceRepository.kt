@@ -75,7 +75,7 @@ class AttendanceRepository(context: Context) {
                     date = formatDate(now),
                     checkInTime = formatDate(now),
                     checkOutTime = null,
-                    membershipStatus = member.status,
+                    daysToExpiry = calculateDaysToExpiry(member.expiryDate),
                     notes = "",
                     synced = false
                 )
@@ -124,5 +124,14 @@ class AttendanceRepository(context: Context) {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         dateFormat.timeZone = TimeZone.getTimeZone("UTC")
         return dateFormat.format(date)
+    }
+
+    private fun calculateDaysToExpiry(expiryDate: Date): Int {
+        val today = Date()
+        
+        // Calculate difference in milliseconds
+        val diffInMillis = expiryDate.time - today.time
+        // Convert to days
+        return (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
     }
 }

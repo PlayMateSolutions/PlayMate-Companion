@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.jsramraj.playmatecompanion.android.auth.SessionManager
+import com.jsramraj.playmatecompanion.android.attendance.AttendanceListScreen
 import com.jsramraj.playmatecompanion.android.main.HomeScreen
 import com.jsramraj.playmatecompanion.android.members.MembersScreen
 import com.jsramraj.playmatecompanion.android.settings.SettingsScreen
@@ -60,6 +61,9 @@ fun AppNavigation(
             HomeScreen(
                 onNavigateToSettings = {
                     navController.navigate(Route.Settings.route)
+                },
+                onNavigateToAttendanceList = {
+                    navController.navigate(Route.AttendanceList.route)
                 }
             )
         }
@@ -145,6 +149,38 @@ fun AppNavigation(
             }
         ) {
             MembersScreen(
+                onBack = { navController.navigateUp() }
+            )
+        }
+        
+        composable(
+            route = Route.AttendanceList.route,
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(300)
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(300)
+                )
+            },
+            popEnterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(300)
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(300)
+                )
+            }
+        ) {
+            AttendanceListScreen(
                 onBack = { navController.navigateUp() }
             )
         }

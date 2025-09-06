@@ -5,12 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jsramraj.playmatecompanion.android.repository.AttendanceRepository
 import com.jsramraj.playmatecompanion.android.repository.MemberRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Date
+import java.util.*
 
 // Define a data class for the welcome card information
 data class WelcomeCardInfo(
@@ -20,6 +20,18 @@ data class WelcomeCardInfo(
     val timestamp: Date
 )
 
+// Data class for grouped attendance records
+data class AttendanceGroup(
+    val date: Date,
+    val records: List<AttendanceWithMember>
+)
+
+// Data class to hold attendance with member info
+data class AttendanceWithMember(
+    val attendance: Attendance,
+    var memberName: String = "" // Will be populated from member repository
+)
+
 class AttendanceViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AttendanceRepository(application)
     private val memberRepository = MemberRepository(application)
@@ -27,7 +39,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     // Track the input text for the attendance ID/phone
     private val _inputText = MutableStateFlow("")
     val inputText: StateFlow<String> = _inputText
-    
+
     // Track success/error messages
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -46,6 +58,49 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
+        )
+    
+    // Grouped attendance list
+    val groupedAttendanceList: StateFlow<List<AttendanceGroup>> = repository.getAllAttendance()
+        .transformLatest { attendanceList ->
+            val withMembers = coroutineScope {
+                attendanceList.map { attendance ->
+                    async {
+                        val member = memberRepository.getMemberById(attendance.memberId)
+                        AttendanceWithMember(
+                            attendance = attendance,
+                            memberName = if (member != null) "${member.firstName} ${member.lastName}" else "Unknown"
+                        )
+                    }
+                }.awaitAll()
+            }
+
+            val grouped = withMembers
+                .groupBy { record ->
+                    val cal = Calendar.getInstance()
+                    cal.time = record.attendance.date
+                    cal.set(Calendar.HOUR_OF_DAY, 0)
+                    cal.set(Calendar.MINUTE, 0)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                    cal.time
+                }
+                .map { (date, records) ->
+                    AttendanceGroup(date, records)
+                }
+                .sortedByDescending { it.date }
+
+            emit(grouped)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
         )
     
     // Update input text

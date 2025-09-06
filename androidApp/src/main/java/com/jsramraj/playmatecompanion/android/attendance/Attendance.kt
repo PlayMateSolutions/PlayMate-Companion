@@ -13,7 +13,7 @@ data class Attendance(
     val checkInTime: Date,
     @SerializedName("checkOutTime")
     val checkOutTime: Date? = null,
-    val membershipStatus: String,
+    val daysToExpiry: Int,
     val notes: String? = null,
     val synced: Boolean // Track if the record has been synced to the server
 )

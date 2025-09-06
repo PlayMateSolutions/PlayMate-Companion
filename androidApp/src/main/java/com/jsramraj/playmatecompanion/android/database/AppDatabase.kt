@@ -32,28 +32,6 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 .addMigrations(
                     // Migration from version 1 to 2: Add attendance table
-                    object : androidx.room.migration.Migration(1, 2) {
-                        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                            db.execSQL("""
-                                CREATE TABLE IF NOT EXISTS `attendance` (
-                                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                                `memberId` INTEGER NOT NULL,
-                                `date` TEXT NOT NULL,
-                                `checkInTime` TEXT NOT NULL,
-                                `checkOutTime` TEXT,
-                                `membershipStatus` TEXT NOT NULL,
-                                `notes` TEXT NOT NULL,
-                                `synced` INTEGER NOT NULL,
-                                FOREIGN KEY(`memberId`) REFERENCES `members`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-                                )
-                            """.trimIndent())
-                            
-                            // Create an index on memberId for better query performance
-                            db.execSQL(
-                                "CREATE INDEX IF NOT EXISTS `index_attendance_memberId` ON `attendance` (`memberId`)"
-                            )
-                        }
-                    }
                 )
                 .build()
                 
