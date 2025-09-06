@@ -2,8 +2,10 @@ package com.jsramraj.playmatecompanion.android.repository
 
 import android.content.Context
 import com.jsramraj.playmatecompanion.android.attendance.Attendance
+import com.jsramraj.playmatecompanion.android.attendance.AttendanceSyncRequest
 import com.jsramraj.playmatecompanion.android.database.AppDatabase
 import com.jsramraj.playmatecompanion.android.database.AttendanceEntity
+import com.jsramraj.playmatecompanion.android.network.NetworkHelper
 import com.jsramraj.playmatecompanion.android.repository.MemberRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -14,10 +16,24 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class AttendanceRepository(context: Context) {
+class AttendanceRepository(private val context: Context) {
     private val attendanceDao = AppDatabase.getDatabase(context).attendanceDao()
     private val memberDao = AppDatabase.getDatabase(context).memberDao()
     private val memberRepository = MemberRepository(context)
+    private val networkHelper = NetworkHelper(context)
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+
+    suspend fun syncAttendance(records: List<AttendanceSyncRequest>): Result<Boolean> {
+        return networkHelper.syncAttendance(records).also { result ->
+            if (result.isSuccess) {
+                // Update local records as synced
+                val memberIds = records.map { it.memberId.toLong() }
+                attendanceDao.updateSyncStatus(memberIds, true)
+            }
+        }
+    }
     
     // Get all attendance records as a Flow
     fun getAllAttendance(): Flow<List<Attendance>> {

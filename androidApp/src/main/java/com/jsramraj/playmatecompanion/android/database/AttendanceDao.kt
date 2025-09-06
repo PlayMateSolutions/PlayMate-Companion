@@ -33,4 +33,7 @@ interface AttendanceDao {
     
     @Query("SELECT COUNT(*) FROM attendance WHERE date LIKE :datePrefix || '%'")
     fun getAttendanceCountForDate(datePrefix: String): Flow<Int>
+
+    @Query("UPDATE attendance SET synced = :synced WHERE memberId IN (:memberIds)")
+    suspend fun updateSyncStatus(memberIds: List<Long>, synced: Boolean)
 }

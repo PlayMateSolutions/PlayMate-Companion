@@ -11,6 +11,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
+import java.text.SimpleDateFormat
+import java.util.TimeZone
 
 // Define a data class for the welcome card information
 data class WelcomeCardInfo(
@@ -35,6 +37,9 @@ data class AttendanceWithMember(
 class AttendanceViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AttendanceRepository(application)
     private val memberRepository = MemberRepository(application)
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
     
     // Track the input text for the attendance ID/phone
     private val _inputText = MutableStateFlow("")
@@ -43,10 +48,58 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     // Track success/error messages
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
+
+    // Track error details
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
     
     // Track loading state
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // Track syncing state
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing
+
+    fun syncAttendance() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            _message.value = null
+
+            try {
+                // Get non-synced records
+                val nonSyncedRecords = groupedAttendanceList.value
+                    .flatMap { it.records }
+                    .filter { !it.attendance.synced }
+                    .map {
+                        AttendanceSyncRequest(
+                            memberId = it.attendance.memberId,
+                            checkInTime = dateFormat.format(it.attendance.checkInTime),
+                            checkOutTime = it.attendance.checkOutTime?.let { time -> dateFormat.format(time) },
+                            date = dateFormat.format(it.attendance.date)
+                        )
+                    }
+
+                if (nonSyncedRecords.isEmpty()) {
+                    _message.value = "No records to sync"
+                    return@launch
+                }
+
+                // Send to server
+                repository.syncAttendance(nonSyncedRecords).onSuccess {
+                    _message.value = "Successfully synced ${nonSyncedRecords.size} records"
+                    _error.value = null
+                }.onFailure { error ->
+                    _message.value = "Failed to sync records"
+                    _error.value = error.message
+                }
+            } catch (e: Exception) {
+                _message.value = "Error during sync: ${e.message}"
+            } finally {
+                _isSyncing.value = false
+            }
+        }
+    }
     
     // Track the currently shown welcome message with member details
     private val _welcomeInfo = MutableStateFlow<WelcomeCardInfo?>(null)

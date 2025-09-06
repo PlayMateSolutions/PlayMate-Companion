@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,8 +32,21 @@ fun AttendanceListScreen(
     attendanceViewModel: AttendanceViewModel = viewModel()
 ) {
     val groupedAttendanceList by attendanceViewModel.groupedAttendanceList.collectAsState()
+    val errorMessage by attendanceViewModel.error.collectAsState()
+    
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                duration = SnackbarDuration.Long
+            )
+        }
+    }
     
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { 
@@ -46,6 +60,26 @@ fun AttendanceListScreen(
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.bodySmall
                         )
+                    }
+                },
+                actions = {
+                    val isSyncing by attendanceViewModel.isSyncing.collectAsState()
+                    IconButton(
+                        onClick = { attendanceViewModel.syncAttendance() },
+                        enabled = !isSyncing
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Send,
+                                contentDescription = "Sync attendance",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
