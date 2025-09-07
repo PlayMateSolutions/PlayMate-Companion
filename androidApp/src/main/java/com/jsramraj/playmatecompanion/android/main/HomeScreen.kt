@@ -7,15 +7,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -24,10 +28,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.attendance.AttendanceViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.ui.platform.LocalView
+import com.jsramraj.playmatecompanion.android.utils.KeyboardUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +52,8 @@ fun HomeScreen(
     val message by attendanceViewModel.message.collectAsState()
     val isLoading by attendanceViewModel.isLoading.collectAsState()
     val todayAttendanceCount by attendanceViewModel.todayAttendanceCount.collectAsState()
-    
+
+    var isKeyboardVisible by remember { mutableStateOf(true) }
     // Auto-focus for the input field
     val focusRequester = remember { FocusRequester() }
     
@@ -142,30 +154,68 @@ fun HomeScreen(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                         
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { attendanceViewModel.updateInputText(it) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester),
-                            label = { Text("Member ID or Phone Number") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Person, contentDescription = "Member")
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    attendanceViewModel.processAttendance()
-                                    // Keep focus on the input field for the next entry
-                                    focusRequester.requestFocus()
-                                }
-                            ),
-                            isError = message?.startsWith("Error") == true
-                        )
+                        val context = LocalContext.current
+                        val view = LocalView.current
+                        val coroutineScope = rememberCoroutineScope()
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = inputText,
+                                onValueChange = { attendanceViewModel.updateInputText(it) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequester)
+                                    .onFocusChanged { focusState ->
+                                        if (isKeyboardVisible) {
+                                            coroutineScope.launch {
+                                                delay(10) // Small delay to let the focus settle
+                                                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                                                imm.hideSoftInputFromWindow(view.windowToken, 0)
+                                            }
+                                            isKeyboardVisible = !isKeyboardVisible
+                                        }
+                                    },
+                                label = { Text("Member ID or Phone Number") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Person, contentDescription = "Member")
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        attendanceViewModel.processAttendance()
+                                        focusRequester.requestFocus()
+                                    }
+                                ),
+                                isError = message?.startsWith("Error") == true
+                            )
+                            
+                            IconButton(
+                                onClick = {
+                                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                                    if (isKeyboardVisible) {
+                                        imm.hideSoftInputFromWindow(view.windowToken, 0)
+                                    } else {
+                                        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+                                    }
+                                    isKeyboardVisible = !isKeyboardVisible
+                                },
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Toggle Keyboard"
+                                )
+                            }
+                        }
+
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
