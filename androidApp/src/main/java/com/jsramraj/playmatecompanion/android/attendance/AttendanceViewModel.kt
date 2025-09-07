@@ -200,11 +200,11 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                     },
                     onFailure = { exception ->
                         logManager.e("Attendance", "Failed to process attendance: ${exception.message}")
-                        _message.value = "Error: ${exception.message ?: "Unknown error"}"
+                        setErrorMessage("Error: ${exception.message ?: "Unknown error"}")
                     }
                 )
             } catch (e: Exception) {
-                _message.value = "Error: ${e.message ?: "Unknown error"}"
+                setErrorMessage("Error: ${e.message ?: "Unknown error"}")
             } finally {
                 _isLoading.value = false
             }
@@ -216,6 +216,17 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
         _welcomeInfo.value = null
     }
     
+    // Set error message with auto-clear after 5 seconds
+    private fun setErrorMessage(message: String) {
+        _message.value = message
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(5000) // 5 seconds
+            if (_message.value == message) { // Only clear if the message hasn't changed
+                _message.value = null
+            }
+        }
+    }
+
     // Clear message
     fun clearMessage() {
         _message.value = null

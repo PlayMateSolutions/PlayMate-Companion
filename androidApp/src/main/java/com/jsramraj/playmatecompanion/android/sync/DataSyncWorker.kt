@@ -6,6 +6,7 @@ import com.jsramraj.playmatecompanion.android.attendance.AttendanceSyncRequest
 import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
 import com.jsramraj.playmatecompanion.android.repository.MemberRepository
 import com.jsramraj.playmatecompanion.android.repository.AttendanceRepository
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.concurrent.TimeUnit
@@ -23,24 +24,40 @@ class DataSyncWorker(
     private val memberRepository = MemberRepository(applicationContext)
     private val attendanceRepository = AttendanceRepository(applicationContext)
     private val preferencesManager = PreferencesManager(applicationContext)
+    private val logManager = LogManager.getInstance(applicationContext)
 
     override suspend fun doWork(): Result {
+        val syncStartTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        logManager.i("DataSync", "Starting scheduled sync operation at $syncStartTime")
+
         try {
-            android.util.Log.d("DataSyncWorker", "Starting sync work at ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
             // 1. Fetch and refresh members from server
+            logManager.i("DataSync", "Starting member list refresh")
             val membersResult = memberRepository.refreshMembers()
             if (membersResult.isFailure) {
+                val error = membersResult.exceptionOrNull()
+                logManager.e("DataSync", "Member sync failed: ${error?.message ?: "Unknown error"}")
                 return Result.retry()
+            }
+            
+            membersResult.getOrNull()?.let { members ->
+                logManager.i("DataSync", "Member sync successful. Updated ${members.size} members")
             }
 
             // 2. Sync unsynced attendance records
+            logManager.i("DataSync", "Starting attendance sync")
             val syncResult = attendanceRepository.syncUnsynced()
             if (syncResult.isFailure) {
+                val error = syncResult.exceptionOrNull()
+                logManager.e("DataSync", "Attendance sync failed: ${error?.message ?: "Unknown error"}")
                 return Result.retry()
             }
 
+            val syncEndTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            logManager.i("DataSync", "Sync operation completed successfully at $syncEndTime")
             return Result.success()
         } catch (e: Exception) {
+            logManager.e("DataSync", "Unexpected error during sync: ${e.message ?: "Unknown error"}")
             return Result.retry()
         }
     }
@@ -49,7 +66,9 @@ class DataSyncWorker(
         private const val UNIQUE_WORK_NAME = "data_sync_work"
 
         fun schedule(context: Context, hour: Int, minute: Int) {
-            android.util.Log.d("DataSyncWorker", "Scheduling sync for $hour:$minute")
+            val logManager = com.jsramraj.playmatecompanion.android.utils.LogManager.getInstance(context)
+            logManager.i("DataSync", "Scheduling daily sync for $hour:$minute")
+            
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, minute)
@@ -61,17 +80,18 @@ class DataSyncWorker(
             }
 
             val initialDelay = calendar.timeInMillis - System.currentTimeMillis()
-            android.util.Log.d("DataSyncWorker", "Initial delay will be ${initialDelay/1000/60} minutes")
+            val scheduledTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(calendar.time)
+            logManager.i("DataSync", "Next sync scheduled for: $scheduledTime (in ${initialDelay/1000/60} minutes)")
 
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
             val dailyWorkRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
-                24, TimeUnit.HOURS
+                12, TimeUnit.HOURS
             )
                 .setConstraints(constraints)
-                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)  // Set the initial delay
+                .setInitialDelay(100, TimeUnit.MILLISECONDS)  // Set the initial delay
                 .build()
 
             WorkManager.getInstance(context)
@@ -83,15 +103,20 @@ class DataSyncWorker(
         }
 
         fun cancel(context: Context) {
+            val logManager = com.jsramraj.playmatecompanion.android.utils.LogManager.getInstance(context)
+            logManager.i("DataSync", "Cancelling scheduled sync work")
             WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
         }
 
         fun updateSchedule(context: Context) {
+            val logManager = com.jsramraj.playmatecompanion.android.utils.LogManager.getInstance(context)
             val preferencesManager = PreferencesManager(context)
             if (preferencesManager.syncEnabled) {
                 val syncTime = preferencesManager.syncTime
+                logManager.i("DataSync", "Updating sync schedule to ${syncTime.hour}:${syncTime.minute}")
                 schedule(context, syncTime.hour, syncTime.minute)
             } else {
+                logManager.i("DataSync", "Sync disabled, cancelling scheduled work")
                 cancel(context)
             }
         }

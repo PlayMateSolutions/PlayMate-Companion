@@ -107,9 +107,7 @@ fun AppNavigation(
             SettingsScreen(
                 onLogout = onLogout,
                 onSave = {
-                    navController.navigate(Route.Main.route) {
-                        popUpTo(Route.Main.route) { inclusive = true }
-                    }
+                    navController.navigateUp()
                 },
                 onBack = { 
                     if (!sessionManager.getSportsClubId().isNullOrEmpty() && !fromLogin) {
