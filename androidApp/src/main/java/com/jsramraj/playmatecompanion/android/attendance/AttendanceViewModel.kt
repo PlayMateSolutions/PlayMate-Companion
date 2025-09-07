@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jsramraj.playmatecompanion.android.repository.AttendanceRepository
 import com.jsramraj.playmatecompanion.android.repository.MemberRepository
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -34,9 +35,11 @@ data class AttendanceWithMember(
     var memberName: String = "" // Will be populated from member repository
 )
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class AttendanceViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AttendanceRepository(application)
     private val memberRepository = MemberRepository(application)
+    private val logManager = LogManager.getInstance(application)
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
@@ -62,20 +65,22 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     val isSyncing: StateFlow<Boolean> = _isSyncing
 
     fun syncAttendance() {
+        if (_isSyncing.value) {
+            logManager.w("Attendance", "Sync already in progress, skipping request")
+            return
+        }
+        
+        logManager.i("Attendance", "Starting attendance sync")
+        _isSyncing.value = true
+        
         viewModelScope.launch {
-            _isSyncing.value = true
-            _message.value = null
-
             try {
-                repository.syncUnsynced().onSuccess { 
-                    _message.value = "Sync completed successfully"
-                    _error.value = null
-                }.onFailure { error ->
-                    _message.value = "Failed to sync records"
-                    _error.value = error.message
-                }
+                repository.syncAttendance(emptyList())  // Using default empty list as we're syncing all records
+                logManager.i("Attendance", "Attendance sync completed successfully")
+                _error.value = null
             } catch (e: Exception) {
-                _message.value = "Error during sync: ${e.message}"
+                logManager.e("Attendance", "Sync failed: ${e.message}")
+                _error.value = e.message ?: "Unknown error occurred"
             } finally {
                 _isSyncing.value = false
             }
@@ -97,10 +102,15 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     // Grouped attendance list
     val groupedAttendanceList: StateFlow<List<AttendanceGroup>> = repository.getAllAttendance()
         .transformLatest { attendanceList ->
+            logManager.i("Attendance", "Loading attendance records. Total records: ${attendanceList.size}")
+            
             val withMembers = coroutineScope {
                 attendanceList.map { attendance ->
                     async {
                         val member = memberRepository.getMemberById(attendance.memberId)
+                        if (member == null) {
+                            logManager.w("Attendance", "Member not found for attendance record. Member ID: ${attendance.memberId}")
+                        }
                         AttendanceWithMember(
                             attendance = attendance,
                             memberName = if (member != null) "${member.firstName} ${member.lastName}" else "Unknown"
@@ -146,27 +156,29 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     fun processAttendance() {
         val input = _inputText.value.trim()
         if (input.isEmpty()) {
+            logManager.w("Attendance", "Empty input received")
             _message.value = "Please enter a member ID or phone number"
             return
         }
         
+        logManager.i("Attendance", "Processing attendance for input: $input")
         _isLoading.value = true
         _message.value = null
         
         viewModelScope.launch {
             try {
-                // Use the consolidated method that handles both member ID and phone
                 val result = repository.logAttendanceByIdentifier(input)
                 
                 result.fold(
                     onSuccess = { attendance ->
-                        // Get member details
                         val member = memberRepository.getMemberById(attendance.memberId)
                         if (member != null) {
                             val checkOutTime = attendance.checkOutTime
                             val isCheckIn = checkOutTime == null
+                            val action = if (isCheckIn) "Check-in" else "Check-out"
                             
-                            // Create welcome info
+                            logManager.i("Attendance", "$action recorded for ${member.firstName} ${member.lastName} (ID: ${member.id})")
+                            
                             _welcomeInfo.value = WelcomeCardInfo(
                                 memberId = member.id,
                                 memberName = "${member.firstName} ${member.lastName}",
@@ -174,20 +186,20 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                                 timestamp = if (isCheckIn) attendance.checkInTime else checkOutTime!!
                             )
                             
-                            // Set message
                             if (isCheckIn) {
                                 _message.value = "Welcome, ${member.firstName}! Check-in recorded."
                             } else {
                                 _message.value = "Goodbye, ${member.firstName}! Check-out recorded."
                             }
                         } else {
+                            logManager.w("Attendance", "Attendance recorded for unknown member ID: ${attendance.memberId}")
                             _message.value = "Attendance recorded for member #${attendance.memberId}"
                         }
                         
-                        // Clear the input field on success
                         _inputText.value = ""
                     },
                     onFailure = { exception ->
+                        logManager.e("Attendance", "Failed to process attendance: ${exception.message}")
                         _message.value = "Error: ${exception.message ?: "Unknown error"}"
                     }
                 )

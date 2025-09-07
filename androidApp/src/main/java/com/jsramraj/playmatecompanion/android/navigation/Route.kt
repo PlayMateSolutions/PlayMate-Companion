@@ -5,6 +5,7 @@ sealed class Route(val route: String) {
     object Settings : Route("settings")
     object Members : Route("members")
     object AttendanceList : Route("attendance_list")
+    object Logs : Route("logs")
 }
 
 object NavigationArgs {

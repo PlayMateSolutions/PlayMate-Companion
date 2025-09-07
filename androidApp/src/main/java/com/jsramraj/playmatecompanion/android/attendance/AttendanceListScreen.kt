@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.utils.AvatarColorUtil
 import com.jsramraj.playmatecompanion.android.utils.MembershipStatusUtil
 import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,9 +37,10 @@ fun AttendanceListScreen(
     onOpenMembers: () -> Unit,
     attendanceViewModel: AttendanceViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val logManager = remember { LogManager.getInstance(context) }
     val groupedAttendanceList by attendanceViewModel.groupedAttendanceList.collectAsState()
     val errorMessage by attendanceViewModel.error.collectAsState()
-    val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     var lastSyncText by remember {
         mutableStateOf(
@@ -50,17 +52,21 @@ fun AttendanceListScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Update last sync text every minute
+    // Update sync text every minute
     LaunchedEffect(Unit) {
         while (true) {
-            lastSyncText =
-                preferencesManager.getFormattedLastSyncTime(preferencesManager.lastAttendanceSyncTime)
-            kotlinx.coroutines.delay(60_000) // Update every minute
+            val newSyncText = preferencesManager.getFormattedLastSyncTime(preferencesManager.lastAttendanceSyncTime)
+            if (lastSyncText != newSyncText) {
+                lastSyncText = newSyncText
+            }
+            kotlinx.coroutines.delay(60_000)
         }
     }
 
+    // Handle error messages
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
+            logManager.e("AttendanceList", "Error occurred: $it")
             snackbarHostState.showSnackbar(
                 message = it,
                 duration = SnackbarDuration.Long
@@ -98,7 +104,10 @@ fun AttendanceListScreen(
                     // Sync button
                     val isSyncing by attendanceViewModel.isSyncing.collectAsState()
                     IconButton(
-                        onClick = { attendanceViewModel.syncAttendance() },
+                        onClick = {
+                            logManager.i("AttendanceList", "Manual sync initiated by user")
+                            attendanceViewModel.syncAttendance()
+                        },
                         enabled = !isSyncing
                     ) {
                         if (isSyncing) {
@@ -164,7 +173,7 @@ fun AttendanceListScreen(
 
             Divider()
 
-                        // Main Content
+            // Main Content
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -198,11 +207,24 @@ fun AttendanceListScreen(
     }
 }
 
+
     @Composable
-    fun AttendanceCard(record: AttendanceWithMember) {
+    private fun AttendanceCard(record: AttendanceWithMember) {
+        val context = LocalContext.current
+        val logManager = remember { LogManager.getInstance(context) }
         val timeFormatter = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
         val initial = record.memberName.firstOrNull()?.uppercaseChar() ?: '?'
         val avatarColor = remember(initial) { AvatarColorUtil.getColorForLetter(initial) }
+
+        // Log unsynced records for debugging
+        LaunchedEffect(record.attendance.synced) {
+            if (!record.attendance.synced) {
+                logManager.w(
+                    "AttendanceList",
+                    "Unsynced attendance record found for member ${record.memberName} (ID: ${record.attendance.memberId})"
+                )
+            }
+        }
 
         val isToday = remember(record.attendance.date) {
             val cal1 = Calendar.getInstance()

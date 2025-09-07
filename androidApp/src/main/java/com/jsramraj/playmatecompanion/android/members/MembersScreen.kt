@@ -30,6 +30,7 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.jsramraj.playmatecompanion.android.utils.MembershipStatusUtil
 import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -39,10 +40,11 @@ fun MembersScreen(
     onBack: () -> Unit,
     viewModel: MembersViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val logManager = remember { LogManager.getInstance(context) }
     val members by viewModel.members.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
-    val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     var lastSyncText by remember {
         mutableStateOf(
@@ -52,243 +54,269 @@ fun MembersScreen(
         )
     }
 
-    // Update last sync text every minute
+    // Update sync text every minute
     LaunchedEffect(Unit) {
         while (true) {
-            lastSyncText =
-                preferencesManager.getFormattedLastSyncTime(preferencesManager.lastMemberSyncTime)
-            kotlinx.coroutines.delay(60_000) // Update every minute
+            val newSyncText = preferencesManager.getFormattedLastSyncTime(preferencesManager.lastMemberSyncTime)
+            if (lastSyncText != newSyncText) {
+                lastSyncText = newSyncText
+            }
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
+
+    // Log errors when they occur
+    LaunchedEffect(error) {
+        error?.let {
+            logManager.e("MembersScreen", "Error occurred: $it")
         }
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                },
-                title = {
-                    Column {
-                        Text(
-                            "Members",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        if (members.isNotEmpty()) {
-                            Text(
-                                "Showing ${members.size} members",
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshMembers() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Sync Info Section
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Sync,
-                        contentDescription = "Sync Status",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "Last synced: $lastSyncText",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Divider()
-
-
-            // Main Content
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                SwipeRefresh(
-                    state = rememberSwipeRefreshState(isLoading),
-                    onRefresh = { viewModel.refreshMembers() }
-                ) {
-                    if (error != null) {
-                        // Error state
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
                             Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(48.dp)
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = error ?: "Unknown error occurred",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.refreshMembers() }) {
-                                Text("Retry")
-                            }
                         }
-                    } else if (members.isEmpty()) {
-                        // Empty state
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
+                    },
+                    title = {
+                        Column {
                             Text(
-                                text = "No members found",
+                                "Members",
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 style = MaterialTheme.typography.titleMedium
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Pull down to refresh or tap the refresh button",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.refreshMembers() }) {
-                                Text("Refresh Now")
+                            if (members.isNotEmpty()) {
+                                Text(
+                                    "Showing ${members.size} members",
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
-                    } else {
-                        // Member list with sorting options
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Sorting options
-                            val currentSortOption by viewModel.sortOption.collectAsState()
-                            val currentSortDirection by viewModel.sortDirection.collectAsState()
-                            val primaryRed = Color(0xFFdc2626)
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                logManager.i("MembersScreen", "Manual refresh initiated by user")
+                                viewModel.refreshMembers()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                // Sync Info Section
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sync Status",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Last synced: $lastSyncText",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
-                            // Sort options row
+                Divider()
+
+
+                // Main Content
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
+                    SwipeRefresh(
+                        state = rememberSwipeRefreshState(isLoading),
+                        onRefresh = { viewModel.refreshMembers() }
+                    ) {
+                        if (error != null) {
+                            // Error state
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = error ?: "Unknown error occurred",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { viewModel.refreshMembers() }) {
+                                    Text("Retry")
+                                }
+                            }
+                        } else if (members.isEmpty()) {
+                            // Empty state
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "Sort by:",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(bottom = 8.dp)
+                                    text = "No members found",
+                                    style = MaterialTheme.typography.titleMedium
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Pull down to refresh or tap the refresh button",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { viewModel.refreshMembers() }) {
+                                    Text("Refresh Now")
+                                }
+                            }
+                        } else {
+                            // Member list with sorting options
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Sorting options
+                                val currentSortOption by viewModel.sortOption.collectAsState()
+                                val currentSortDirection by viewModel.sortDirection.collectAsState()
+                                val primaryRed = Color(0xFFdc2626)
 
-                                // Sort buttons in a row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                // Sort options row
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
                                 ) {
-                                    // Sort buttons
-                                    SortOption.values().forEach { option ->
-                                        Button(
-                                            onClick = { viewModel.setSortOption(option) },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(40.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (currentSortOption == option) primaryRed else Color.LightGray,
-                                                contentColor = if (currentSortOption == option) Color.White else Color.Black
-                                            ),
-                                            shape = RoundedCornerShape(20.dp) // Perfect pill shape
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ) {
-                                                Text(
-                                                    text = option.displayName,
-                                                    style = MaterialTheme.typography.bodyMedium
-                                                )
+                                    Text(
+                                        text = "Sort by:",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
 
-                                                // Only show arrow for the currently selected option
-                                                if (currentSortOption == option) {
-                                                    Spacer(modifier = Modifier.width(4.dp))
+                                    // Sort buttons in a row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // Sort buttons
+                                        SortOption.values().forEach { option ->
+                                            Button(
+                                                onClick = {
+                                                    logManager.i(
+                                                        "MembersScreen",
+                                                        "Sort option changed to: ${option.displayName}"
+                                                    )
+                                                    viewModel.setSortOption(option)
+                                                },
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(40.dp),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = if (currentSortOption == option) primaryRed else Color.LightGray,
+                                                    contentColor = if (currentSortOption == option) Color.White else Color.Black
+                                                ),
+                                                shape = RoundedCornerShape(20.dp) // Perfect pill shape
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
                                                     Text(
-                                                        text = if (currentSortDirection == SortDirection.ASCENDING) "↑" else "↓",
+                                                        text = option.displayName,
                                                         style = MaterialTheme.typography.bodyMedium
                                                     )
+
+                                                    // Only show arrow for the currently selected option
+                                                    if (currentSortOption == option) {
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = if (currentSortDirection == SortDirection.ASCENDING) "↑" else "↓",
+                                                            style = MaterialTheme.typography.bodyMedium
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            // Member list
-                            LazyColumn(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(members) { member ->
-                                    MemberCard(member = member)
+                                // Member list
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 16.dp,
+                                        vertical = 8.dp
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(members) { member ->
+                                        MemberCard(member = member)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .align(Alignment.Center)
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .align(Alignment.Center)
+                        )
+                    }
                 }
             }
         }
     }
-}
+
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun MemberCard(member: Member) {
+    private fun MemberCard(member: Member) {
+        val context = LocalContext.current
+        val logManager = remember { LogManager.getInstance(context) }
         val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
 
         // Determine expiry status for color highlighting

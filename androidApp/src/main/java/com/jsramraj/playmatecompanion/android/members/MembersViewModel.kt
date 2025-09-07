@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jsramraj.playmatecompanion.android.repository.MemberRepository
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,7 @@ enum class SortDirection {
 
 class MembersViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MemberRepository(application)
+    private val logManager = LogManager.getInstance(application)
     
     // Current sort option
     private val _sortOption = MutableStateFlow(SortOption.ID)
@@ -39,10 +41,15 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
     // Stream of members from the database, sorted according to the current sort option and direction
     val members: StateFlow<List<Member>> =
             combine(
-                repository.getAllMembers().catch { emit(emptyList()) },
+                repository.getAllMembers().catch { 
+                    logManager.e("MembersViewModel", "Error fetching members: ${it.message}")
+                    emit(emptyList()) 
+                },
                 _sortOption,
                 _sortDirection
             ) { members, sortOption, direction ->
+                logManager.d("MembersViewModel", "Processing member list update. Total members: ${members.size}, Sort: $sortOption, Direction: $direction")
+                
                 val comparator: Comparator<Member> = when (sortOption) {
                     SortOption.ID -> compareBy { it.id }
                     SortOption.NAME -> compareBy { "${it.firstName} ${it.lastName}" }
@@ -68,16 +75,23 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
     // Removed init block so it doesn't auto-refresh on launch
 
     fun refreshMembers() {
+        logManager.i("MembersViewModel", "Starting member list refresh")
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
 
             try {
                 repository.refreshMembers().onFailure { exception ->
-                    _error.value = exception.message ?: "Failed to refresh members"
+                    val errorMsg = exception.message ?: "Failed to refresh members"
+                    logManager.e("MembersViewModel", "Member refresh failed: $errorMsg")
+                    _error.value = errorMsg
+                }.onSuccess { members ->
+                    logManager.i("MembersViewModel", "Member refresh successful. Total members: ${members.size}")
                 }
             } catch (e: Exception) {
-                _error.value = e.message ?: "An unexpected error occurred"
+                val errorMsg = e.message ?: "An unexpected error occurred"
+                logManager.e("MembersViewModel", "Unexpected error during member refresh: $errorMsg")
+                _error.value = errorMsg
             } finally {
                 _isLoading.value = false
             }
@@ -88,8 +102,10 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
     fun setSortOption(option: SortOption) {
         // If selecting the same option, toggle the direction instead
         if (_sortOption.value == option) {
+            logManager.d("MembersViewModel", "Same sort option selected, toggling direction")
             toggleSortDirection()
         } else {
+            logManager.i("MembersViewModel", "Sort option changed from ${_sortOption.value} to $option")
             _sortOption.value = option
             _sortDirection.value = SortDirection.ASCENDING // Reset to ascending when changing options
         }
@@ -97,10 +113,12 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
     
     // Function to toggle between ascending and descending sort
     fun toggleSortDirection() {
-        _sortDirection.value = if (_sortDirection.value == SortDirection.ASCENDING) {
+        val newDirection = if (_sortDirection.value == SortDirection.ASCENDING) {
             SortDirection.DESCENDING
         } else {
             SortDirection.ASCENDING
         }
+        logManager.i("MembersViewModel", "Sort direction changed from ${_sortDirection.value} to $newDirection")
+        _sortDirection.value = newDirection
     }
 }

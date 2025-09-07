@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.attendance.AttendanceViewModel
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -45,6 +46,14 @@ fun HomeScreen(
     onNavigateToAttendanceList: () -> Unit,
     attendanceViewModel: AttendanceViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val logManager = remember { LogManager.getInstance(context) }
+
+    // Log screen entry
+    LaunchedEffect(Unit) {
+        logManager.i("HomeScreen", "Screen entered")
+    }
+
     // Collect attendance state
     val inputText by attendanceViewModel.inputText.collectAsState()
     val message by attendanceViewModel.message.collectAsState()
@@ -65,8 +74,13 @@ fun HomeScreen(
     
     // Show snackbar when error message changes
     LaunchedEffect(message) {
-        if (message != null && message?.startsWith("Error") == true) {
-            showSnackbar = true
+        message?.let { msg ->
+            if (msg.startsWith("Error")) {
+                showSnackbar = true
+                logManager.e("HomeScreen", msg)
+            } else {
+                logManager.i("HomeScreen", msg)
+            }
         }
         // Always request focus to keep the input field active
         focusRequester.requestFocus()
@@ -105,7 +119,12 @@ fun HomeScreen(
                     }
                     
                     // Settings button
-                    IconButton(onClick = onNavigateToSettings) {
+                    IconButton(
+                        onClick = { 
+                            onNavigateToSettings()
+                            logManager.i("HomeScreen", "Navigated to Settings")
+                        }
+                    ) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings",
@@ -222,6 +241,7 @@ fun HomeScreen(
                         
                         Button(
                             onClick = {
+                                logManager.i("HomeScreen", "Processing attendance for input: $inputText")
                                 attendanceViewModel.processAttendance()
                                 // Keep focus on the input field for the next entry
                                 focusRequester.requestFocus()
@@ -251,9 +271,13 @@ fun HomeScreen(
                 // Welcome card for the member who just logged in
                 val welcomeInfo by attendanceViewModel.welcomeInfo.collectAsState()
                 
-                // Auto-dismiss welcome card after 5 seconds
+                                // Auto-dismiss welcome card after 5 seconds
                 LaunchedEffect(welcomeInfo) {
                     if (welcomeInfo != null) {
+                        val action = if (welcomeInfo!!.isCheckIn) "checked in" else "checked out"
+                        val memberId = welcomeInfo!!.memberId
+                        val memberName = welcomeInfo!!.memberName
+                        logManager.i("HomeScreen", "$memberName (ID: $memberId) $action")
                         kotlinx.coroutines.delay(5000) // 5 seconds
                         attendanceViewModel.clearWelcomeInfo()
                         focusRequester.requestFocus()

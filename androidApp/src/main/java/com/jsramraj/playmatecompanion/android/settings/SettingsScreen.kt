@@ -1,5 +1,4 @@
 package com.jsramraj.playmatecompanion.android.settings
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +8,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
 import java.time.LocalTime
@@ -16,6 +17,8 @@ import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.jsramraj.playmatecompanion.android.components.LogViewer
+import com.jsramraj.playmatecompanion.android.utils.LogManager
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -45,13 +48,15 @@ private fun SectionHeader(text: String) {
 fun SettingsScreen(
     onLogout: () -> Unit,
     onSave: () -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onNavigateToLogs: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val preferencesManager = remember { PreferencesManager(context) }
     val sessionInfo = remember { sessionManager.getSessionInfo() }
     val appVersion = remember { AppInfo.getVersionName(context) }
+    val logManager = remember { LogManager.getInstance(context) }
     var clubId by remember { mutableStateOf(sessionManager.getSportsClubId() ?: "") }
     var syncEnabled by remember { mutableStateOf<Boolean>(preferencesManager.syncEnabled) }
     var syncTime by remember { mutableStateOf<LocalTime>(preferencesManager.syncTime) }
@@ -270,6 +275,34 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
+
+            // Logs Section
+            SectionHeader(text = "Logs")
+            ListItem(
+                modifier = Modifier.clickable { onNavigateToLogs() },
+                headlineContent = { Text("View Application Logs") },
+                supportingContent = { Text("View detailed application logs and events") },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = "View Logs"
+                    )
+                },
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Navigate"
+                    )
+                }
+            )
         }
     }
 }
