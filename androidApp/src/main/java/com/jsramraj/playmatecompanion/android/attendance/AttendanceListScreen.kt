@@ -261,7 +261,7 @@ fun AttendanceListScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = initial.toString(),
+                                text = record.attendance.memberId.toString(),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold

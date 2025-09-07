@@ -93,7 +93,7 @@ fun HomeScreen(
                             .clickable { onNavigateToAttendanceList() }
                     ) {
                         Icon(
-                            Icons.Default.Person,
+                            Icons.Default.EventNote,
                             contentDescription = "View Attendance List",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
