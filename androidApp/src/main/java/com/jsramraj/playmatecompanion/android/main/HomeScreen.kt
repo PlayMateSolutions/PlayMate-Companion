@@ -8,9 +8,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,7 +37,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.ui.platform.LocalView
-import com.jsramraj.playmatecompanion.android.utils.KeyboardUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -210,8 +208,11 @@ fun HomeScreen(
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Toggle Keyboard"
+                                    imageVector = if (isKeyboardVisible) Icons.Outlined.KeyboardHide else Icons.Outlined.Keyboard,
+                                    contentDescription = if (isKeyboardVisible)
+                                        "Hide Keyboard"
+                                    else
+                                        "Show Keyboard"
                                 )
                             }
                         }

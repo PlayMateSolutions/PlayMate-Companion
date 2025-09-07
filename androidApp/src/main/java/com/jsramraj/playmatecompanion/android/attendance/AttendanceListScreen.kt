@@ -9,8 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Send
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.CloudUpload
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,7 +87,7 @@ fun AttendanceListScreen(
                             )
                         } else {
                             Icon(
-                                imageVector = Icons.Outlined.Send,
+                                imageVector = Icons.Outlined.CloudUpload,
                                 contentDescription = "Sync attendance",
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
@@ -262,10 +262,10 @@ fun AttendanceCard(record: AttendanceWithMember) {
                             }
                         }
 
-                        // Warning icon at the end
+                        // Cloud sync icon for unsynced records
                         if (!record.attendance.synced) {
                             Icon(
-                                imageVector = Icons.Outlined.Warning,
+                                imageVector = Icons.Default.CloudOff,
                                 contentDescription = "Not synced",
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
