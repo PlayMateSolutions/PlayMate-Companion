@@ -27,11 +27,40 @@ class AttendanceRepository(private val context: Context) {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
-    suspend fun syncAttendance(records: List<AttendanceSyncRequest>): Result<Boolean> {
-        if (records.isEmpty()) {
-            preferencesManager.lastAttendanceSyncTime = System.currentTimeMillis()
-            return Result.success(true)
+    suspend fun syncUnsynced(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            // Get unsynced attendance records
+            val unsynced = getUnsyncedAttendance()
+            if (unsynced.isEmpty()) {
+                return@withContext Result.success(true)
+            }
+
+            // Convert to sync requests
+            val syncRequests = unsynced.map { attendance ->
+                AttendanceSyncRequest(
+                    memberId = attendance.memberId,
+                    checkInTime = dateFormat.format(attendance.checkInTime),
+                    checkOutTime = attendance.checkOutTime?.let { time -> dateFormat.format(time) },
+                    date = dateFormat.format(attendance.date)
+                )
+            }
+
+            // Perform sync
+            return@withContext networkHelper.syncAttendance(syncRequests).also { result ->
+                if (result.isSuccess) {
+                    // Update local records as synced
+                    val memberIds = syncRequests.map { it.memberId.toLong() }
+                    attendanceDao.updateSyncStatus(memberIds, true)
+                    preferencesManager.lastAttendanceSyncTime = System.currentTimeMillis()
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
+    }
+
+    // Internal method for direct sync calls (if needed)
+    internal suspend fun syncAttendance(records: List<AttendanceSyncRequest>): Result<Boolean> {
         return networkHelper.syncAttendance(records).also { result ->
             if (result.isSuccess) {
                 // Update local records as synced
@@ -50,12 +79,17 @@ class AttendanceRepository(private val context: Context) {
             }
     }
     
-    // Get unsynced attendance records
-    fun getUnsyncedAttendance(): Flow<List<Attendance>> {
-        return attendanceDao.getUnsyncedAttendance()
+    // Get unsynced attendance records as Flow (for UI updates)
+    fun getUnsyncedAttendanceFlow(): Flow<List<Attendance>> {
+        return attendanceDao.getUnsyncedAttendanceFlow()
             .map { entities ->
                 entities.map { it.toAttendance() }
             }
+    }
+    
+    // Get unsynced attendance records directly (for sync operations)
+    suspend fun getUnsyncedAttendance(): List<Attendance> {
+        return attendanceDao.getUnsyncedAttendance().map { it.toAttendance() }
     }
     
     // Get attendance for a specific member

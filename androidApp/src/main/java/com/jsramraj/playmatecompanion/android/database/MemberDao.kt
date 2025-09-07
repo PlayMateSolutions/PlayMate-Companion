@@ -30,7 +30,7 @@ interface MemberDao {
     
     @Transaction
     suspend fun refreshMembers(members: List<MemberEntity>) {
-        deleteAllMembers()
+        // Since we are using REPLACE strategy, this will update existing records and insert new ones
         insertMembers(members)
     }
 }

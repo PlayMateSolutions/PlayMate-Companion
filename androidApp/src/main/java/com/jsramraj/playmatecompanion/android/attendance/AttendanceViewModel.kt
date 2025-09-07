@@ -67,28 +67,8 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
             _message.value = null
 
             try {
-                // Get non-synced records
-                val nonSyncedRecords = groupedAttendanceList.value
-                    .flatMap { it.records }
-                    .filter { !it.attendance.synced }
-                    .map {
-                        AttendanceSyncRequest(
-                            memberId = it.attendance.memberId,
-                            checkInTime = dateFormat.format(it.attendance.checkInTime),
-                            checkOutTime = it.attendance.checkOutTime?.let { time -> dateFormat.format(time) },
-                            date = dateFormat.format(it.attendance.date)
-                        )
-                    }
-
-                if (nonSyncedRecords.isEmpty()) {
-                    _message.value = "No records to sync"
-                    repository.syncAttendance(nonSyncedRecords) // To update last sync time
-                    return@launch
-                } 
-
-                // Send to server
-                repository.syncAttendance(nonSyncedRecords).onSuccess {
-                    _message.value = "Successfully synced ${nonSyncedRecords.size} records"
+                repository.syncUnsynced().onSuccess { 
+                    _message.value = "Sync completed successfully"
                     _error.value = null
                 }.onFailure { error ->
                     _message.value = "Failed to sync records"

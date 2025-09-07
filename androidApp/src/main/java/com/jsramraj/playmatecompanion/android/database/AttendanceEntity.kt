@@ -16,7 +16,7 @@ import java.util.TimeZone
             entity = MemberEntity::class,
             parentColumns = ["id"],
             childColumns = ["memberId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.NO_ACTION
         )
     ]
 )

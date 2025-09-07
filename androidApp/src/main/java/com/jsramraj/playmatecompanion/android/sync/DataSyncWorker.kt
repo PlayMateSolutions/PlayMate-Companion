@@ -26,35 +26,17 @@ class DataSyncWorker(
 
     override suspend fun doWork(): Result {
         try {
-                        // 1. Fetch and refresh members from server
+            android.util.Log.d("DataSyncWorker", "Starting sync work at ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
+            // 1. Fetch and refresh members from server
             val membersResult = memberRepository.refreshMembers()
             if (membersResult.isFailure) {
                 return Result.retry()
             }
 
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }
-            // 2. Get unsynced attendance records and sync them
-            val unsynced = attendanceRepository.getUnsyncedAttendance()
-            unsynced.first().let { attendanceList ->
-                if (attendanceList.isNotEmpty()) {
-                    // Convert attendance records to sync requests
-                    val syncRequests = attendanceList.map { attendance ->
-                        AttendanceSyncRequest(
-                            memberId = attendance.memberId,
-                            checkInTime = dateFormat.format(attendance.checkInTime),
-                            checkOutTime = attendance.checkOutTime?.let { time -> dateFormat.format(time) },
-                            date = dateFormat.format(attendance.date)
-                        )
-                    }
-                    
-                    // Sync attendance records with server
-                    val syncResult = attendanceRepository.syncAttendance(syncRequests)
-                    if (syncResult.isFailure) {
-                        return Result.retry()
-                    }
-                }
+            // 2. Sync unsynced attendance records
+            val syncResult = attendanceRepository.syncUnsynced()
+            if (syncResult.isFailure) {
+                return Result.retry()
             }
 
             return Result.success()
@@ -67,6 +49,7 @@ class DataSyncWorker(
         private const val UNIQUE_WORK_NAME = "data_sync_work"
 
         fun schedule(context: Context, hour: Int, minute: Int) {
+            android.util.Log.d("DataSyncWorker", "Scheduling sync for $hour:$minute")
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, minute)
@@ -78,16 +61,17 @@ class DataSyncWorker(
             }
 
             val initialDelay = calendar.timeInMillis - System.currentTimeMillis()
+            android.util.Log.d("DataSyncWorker", "Initial delay will be ${initialDelay/1000/60} minutes")
 
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
             val dailyWorkRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
-                24, TimeUnit.HOURS,
-                initialDelay, TimeUnit.MILLISECONDS
+                24, TimeUnit.HOURS
             )
                 .setConstraints(constraints)
+                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)  // Set the initial delay
                 .build()
 
             WorkManager.getInstance(context)

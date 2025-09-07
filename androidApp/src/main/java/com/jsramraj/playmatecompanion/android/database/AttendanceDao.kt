@@ -20,7 +20,10 @@ interface AttendanceDao {
     fun getAllAttendance(): Flow<List<AttendanceEntity>>
     
     @Query("SELECT * FROM attendance WHERE synced = 0 ORDER BY date ASC")
-    fun getUnsyncedAttendance(): Flow<List<AttendanceEntity>>
+    fun getUnsyncedAttendanceFlow(): Flow<List<AttendanceEntity>>
+    
+    @Query("SELECT * FROM attendance WHERE synced = 0 ORDER BY date ASC")
+    suspend fun getUnsyncedAttendance(): List<AttendanceEntity>
     
     @Query("SELECT * FROM attendance WHERE memberId = :memberId ORDER BY date DESC")
     fun getAttendanceByMemberId(memberId: Int): Flow<List<AttendanceEntity>>
