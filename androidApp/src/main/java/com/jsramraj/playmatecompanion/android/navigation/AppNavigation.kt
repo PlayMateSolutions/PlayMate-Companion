@@ -114,9 +114,6 @@ fun AppNavigation(
                     if (!sessionManager.getSportsClubId().isNullOrEmpty() && !fromLogin) {
                         navController.navigateUp()
                     }
-                },
-                onNavigateToMembers = {
-                    navController.navigate(Route.Members.route)
                 }
             )
         }
@@ -181,7 +178,8 @@ fun AppNavigation(
             }
         ) {
             AttendanceListScreen(
-                onBack = { navController.navigateUp() }
+                onBack = { navController.navigateUp() },
+                onOpenMembers = { navController.navigate(Screen.Members.route) }
             )
         }
     }

@@ -10,8 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.jsramraj.playmatecompanion.android.auth.SessionManager
 import com.jsramraj.playmatecompanion.android.settings.SettingsScreen
-
 import com.jsramraj.playmatecompanion.android.members.MembersScreen
+import com.jsramraj.playmatecompanion.android.attendance.AttendanceListScreen
 import com.jsramraj.playmatecompanion.android.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,13 +39,18 @@ fun MainScreen(
                     if (!sessionManager.getSportsClubId().isNullOrEmpty()) {
                         currentScreen = Screen.Main
                     }
-                },
-                onNavigateToMembers = { currentScreen = Screen.Members }
+                }
             )
         }
         Screen.Members -> {
             MembersScreen(
-                onBack = { currentScreen = Screen.Settings }
+                onBack = { currentScreen = Screen.Main }
+            )
+        }
+        Screen.Attendance -> {
+            AttendanceListScreen(
+                onBack = { currentScreen = Screen.Main },
+                onOpenMembers = { currentScreen = Screen.Members }
             )
         }
         Screen.Main -> {

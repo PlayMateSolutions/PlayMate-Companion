@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
@@ -29,6 +30,7 @@ import java.util.*
 @Composable
 fun AttendanceListScreen(
     onBack: () -> Unit,
+    onOpenMembers: () -> Unit,
     attendanceViewModel: AttendanceViewModel = viewModel()
 ) {
     val groupedAttendanceList by attendanceViewModel.groupedAttendanceList.collectAsState()
@@ -63,6 +65,16 @@ fun AttendanceListScreen(
                     }
                 },
                 actions = {
+                    // Members list button
+                    IconButton(onClick = onOpenMembers) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = "View Members",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    
+                    // Sync button
                     val isSyncing by attendanceViewModel.isSyncing.collectAsState()
                     IconButton(
                         onClick = { attendanceViewModel.syncAttendance() },
