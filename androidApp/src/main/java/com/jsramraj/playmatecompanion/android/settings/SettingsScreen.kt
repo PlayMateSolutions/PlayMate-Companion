@@ -1,6 +1,7 @@
 package com.jsramraj.playmatecompanion.android.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -8,6 +9,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Sync
+import java.time.LocalTime
+import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,7 +23,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsramraj.playmatecompanion.android.auth.AuthViewModel
 import com.jsramraj.playmatecompanion.android.auth.SessionManager
 import com.jsramraj.playmatecompanion.android.core.Constants
+import com.jsramraj.playmatecompanion.android.sync.DataSyncWorker
 import com.jsramraj.playmatecompanion.android.utils.AppInfo
+import com.jsramraj.playmatecompanion.database.SyncPreferences
+
 
 @Composable
 private fun SectionHeader(text: String) {
@@ -41,9 +49,13 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+    val preferencesManager = remember { PreferencesManager(context) }
     val sessionInfo = remember { sessionManager.getSessionInfo() }
     val appVersion = remember { AppInfo.getVersionName(context) }
     var clubId by remember { mutableStateOf(sessionManager.getSportsClubId() ?: "") }
+    var syncEnabled by remember { mutableStateOf<Boolean>(preferencesManager.syncEnabled) }
+    var syncTime by remember { mutableStateOf<LocalTime>(preferencesManager.syncTime) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val authViewModel: AuthViewModel = viewModel()
 
     Scaffold(
@@ -58,7 +70,7 @@ fun SettingsScreen(
                         )
                     }
                 },
-                title = { 
+                title = {
                     Text(
                         "Settings",
                         color = MaterialTheme.colorScheme.onPrimary
@@ -66,8 +78,11 @@ fun SettingsScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { 
+                        onClick = {
                             sessionManager.saveSportsClubId(clubId)
+                            preferencesManager.syncEnabled = syncEnabled
+                            preferencesManager.syncTime = syncTime
+                            DataSyncWorker.updateSchedule(context)
                             onSave()
                         },
                         enabled = clubId.isNotEmpty()
@@ -104,41 +119,74 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(vertical = 16.dp)
                 ) {
-                    Text(
-                        "Sports Club ID",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = clubId,
                         onValueChange = { clubId = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { 
-                            Text(
-                                "Enter Sports Club ID",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            ) 
-                        },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            focusedTextColor = MaterialTheme.colorScheme.onBackground
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "This ID is used to identify your club in the system",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        label = { Text("Club ID") },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
 
+            // Sync Settings Section
+            SectionHeader(text = "Sync Settings")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                // Sync Enable Switch
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Enable Daily Sync",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Switch(
+                        checked = syncEnabled,
+                        onCheckedChange = { syncEnabled = it }
+                    )
+                }
+
+                // Sync Time Picker
+                if (syncEnabled) {
+                    ListItem(
+                        modifier = Modifier.clickable { showTimePicker = true },
+                        headlineContent = { Text("Sync Time") },
+                        supportingContent = {
+                            Text(
+                                "Daily sync will run at ${
+                                    syncTime.format(
+                                        java.time.format.DateTimeFormatter.ofPattern("hh:mm a")
+                                    )
+                                }"
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = "Schedule"
+                            )
+                        }
+                    )
+                }
+            }
+
+            if (showTimePicker) {
+                TimePickerDialog(
+                    onDismiss = { showTimePicker = false },
+                    onConfirm = { time -> syncTime = time },
+                    initialTime = syncTime
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Divider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 1.dp,
@@ -196,7 +244,7 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Divider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 1.dp,
@@ -212,10 +260,10 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                        "Version",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                    "Version",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 Text(
                     appVersion,
                     style = MaterialTheme.typography.bodyLarge,

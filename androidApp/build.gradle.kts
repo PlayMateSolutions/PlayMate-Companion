@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.google.auth)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.navigation.compose)
@@ -58,6 +59,7 @@ dependencies {
     // Room Database
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     ksp("androidx.room:room-compiler:2.5.0")
     implementation(libs.gson)
     debugImplementation(libs.compose.ui.tooling)
