@@ -2,22 +2,61 @@ package com.jsramraj.playmatecompanion.android.sync
 
 import android.content.Context
 import androidx.work.*
-import androidx.work.WorkManager
+import com.jsramraj.playmatecompanion.android.attendance.AttendanceSyncRequest
 import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
+import com.jsramraj.playmatecompanion.android.repository.MemberRepository
+import com.jsramraj.playmatecompanion.android.repository.AttendanceRepository
+import kotlinx.coroutines.flow.first
+import java.text.SimpleDateFormat
 import java.util.concurrent.TimeUnit
 import java.util.Calendar
 import java.time.LocalTime
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class DataSyncWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
+    private val memberRepository = MemberRepository(applicationContext)
+    private val attendanceRepository = AttendanceRepository(applicationContext)
+    private val preferencesManager = PreferencesManager(applicationContext)
+
     override suspend fun doWork(): Result {
         try {
-            // TODO: Implement the sync logic here
-            // 1. Fetch members from server
-            // 2. Upload local attendance records
+                        // 1. Fetch and refresh members from server
+            val membersResult = memberRepository.refreshMembers()
+            if (membersResult.isFailure) {
+                return Result.retry()
+            }
+
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            // 2. Get unsynced attendance records and sync them
+            val unsynced = attendanceRepository.getUnsyncedAttendance()
+            unsynced.first().let { attendanceList ->
+                if (attendanceList.isNotEmpty()) {
+                    // Convert attendance records to sync requests
+                    val syncRequests = attendanceList.map { attendance ->
+                        AttendanceSyncRequest(
+                            memberId = attendance.memberId,
+                            checkInTime = dateFormat.format(attendance.checkInTime),
+                            checkOutTime = attendance.checkOutTime?.let { time -> dateFormat.format(time) },
+                            date = dateFormat.format(attendance.date)
+                        )
+                    }
+                    
+                    // Sync attendance records with server
+                    val syncResult = attendanceRepository.syncAttendance(syncRequests)
+                    if (syncResult.isFailure) {
+                        return Result.retry()
+                    }
+                }
+            }
+
             return Result.success()
         } catch (e: Exception) {
             return Result.retry()

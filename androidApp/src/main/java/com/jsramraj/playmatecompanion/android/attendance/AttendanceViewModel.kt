@@ -82,8 +82,9 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
 
                 if (nonSyncedRecords.isEmpty()) {
                     _message.value = "No records to sync"
+                    repository.syncAttendance(nonSyncedRecords) // To update last sync time
                     return@launch
-                }
+                } 
 
                 // Send to server
                 repository.syncAttendance(nonSyncedRecords).onSuccess {

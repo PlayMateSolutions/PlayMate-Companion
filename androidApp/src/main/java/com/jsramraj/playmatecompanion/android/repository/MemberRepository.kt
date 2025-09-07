@@ -5,6 +5,7 @@ import com.jsramraj.playmatecompanion.android.database.AppDatabase
 import com.jsramraj.playmatecompanion.android.database.MemberEntity
 import com.jsramraj.playmatecompanion.android.members.Member
 import com.jsramraj.playmatecompanion.android.network.NetworkHelper
+import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -17,6 +18,7 @@ class MemberRepository(
 ) {
     private val memberDao = AppDatabase.getDatabase(context).memberDao()
     private val networkHelper = NetworkHelper(context)
+    private val preferencesManager = PreferencesManager(context)
     
     // Get all members from local database as a Flow
     fun getAllMembers(): Flow<List<Member>> {
@@ -47,6 +49,7 @@ class MemberRepository(
                     // Convert and save to database
                     val memberEntities = members.map { MemberEntity.fromMember(it) }
                     memberDao.refreshMembers(memberEntities)
+                    preferencesManager.lastMemberSyncTime = System.currentTimeMillis()
                 }
                 
                 result

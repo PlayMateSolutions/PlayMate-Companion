@@ -26,9 +26,31 @@ class PreferencesManager(context: Context) {
             putString(KEY_SYNC_TIME, value.format(DateTimeFormatter.ofPattern("HH:mm")))
         }
 
+    var lastMemberSyncTime: Long
+        get() = sharedPreferences.getLong(KEY_LAST_MEMBER_SYNC, 0)
+        set(value) = sharedPreferences.edit { putLong(KEY_LAST_MEMBER_SYNC, value) }
+
+    var lastAttendanceSyncTime: Long
+        get() = sharedPreferences.getLong(KEY_LAST_ATTENDANCE_SYNC, 0)
+        set(value) = sharedPreferences.edit { putLong(KEY_LAST_ATTENDANCE_SYNC, value) }
+
+    fun getFormattedLastSyncTime(timestamp: Long): String {
+        if (timestamp == 0L) return "Never"
+        val now = System.currentTimeMillis()
+        val diff = now - timestamp
+        return when {
+            diff < 60_000 -> "Just now" // less than 1 minute
+            diff < 3600_000 -> "${diff / 60_000} minutes ago" // less than 1 hour
+            diff < 86400_000 -> "${diff / 3600_000} hours ago" // less than 1 day
+            else -> "${diff / 86400_000} days ago"
+        }
+    }
+
     companion object {
         private const val PREFERENCES_NAME = "playmate_preferences"
         private const val KEY_SYNC_ENABLED = "sync_enabled"
         private const val KEY_SYNC_TIME = "sync_time"
+        private const val KEY_LAST_MEMBER_SYNC = "last_member_sync"
+        private const val KEY_LAST_ATTENDANCE_SYNC = "last_attendance_sync"
     }
 }
