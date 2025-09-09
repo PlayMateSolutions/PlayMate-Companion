@@ -16,6 +16,8 @@ class SessionManager(context: Context) {
         private const val KEY_USER_EMAIL = "userEmail"
         private const val KEY_USER_NAME = "userName"
         private const val KEY_ID_TOKEN = "idToken"
+        private const val KEY_REFRESH_TOKEN = "refreshToken"
+        private const val KEY_TOKEN_EXPIRY = "tokenExpiry"
         private const val KEY_SPORTS_CLUB_ID = "sportsClubId"
     }
 
@@ -25,6 +27,8 @@ class SessionManager(context: Context) {
             putString(KEY_USER_EMAIL, account.email)
             putString(KEY_USER_NAME, account.displayName)
             putString(KEY_ID_TOKEN, account.idToken)
+            // Store token expiry (default Google tokens expire in 1 hour)
+            putLong(KEY_TOKEN_EXPIRY, System.currentTimeMillis() + 3600000) // Current time + 1 hour
         }
     }
 
@@ -48,9 +52,15 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun getIdToken(): String? = prefs.getString(KEY_ID_TOKEN, null)
+   fun getIdToken(): String? = prefs.getString(KEY_ID_TOKEN, null)
 
     fun getSportsClubId(): String? = prefs.getString(KEY_SPORTS_CLUB_ID, null)
+
+    fun isTokenExpired(): Boolean {
+        val expiry = prefs.getLong(KEY_TOKEN_EXPIRY, 0)
+        // Consider token expired if less than 5 minutes remaining
+        return System.currentTimeMillis() > (expiry - 300000) // 5 minutes buffer
+    }
 
     fun saveSportsClubId(id: String) {
         prefs.edit {

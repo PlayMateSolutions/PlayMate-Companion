@@ -160,7 +160,7 @@ fun AttendanceListScreen(
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = "Sync Status",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -369,46 +369,6 @@ fun AttendanceListScreen(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
-                        }
-
-                        // Missing checkout warning for past dates
-                        if (!isToday && record.attendance.checkOutTime == null) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(8.dp)
-                                    .background(
-                                        color = Color(0xFFFFA000), // Material Amber
-                                        shape = CircleShape
-                                    )
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(8.dp)
-                                    .background(
-                                        color = Color(0xFF4CAF50), // Material Green
-                                        shape = CircleShape
-                                    )
-                            )
-                        } else if (!isToday && record.attendance.checkOutTime == null) {
-                            // Amber dot for missing checkout (past dates)
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(8.dp)
-                                    .background(
-                                        color = Color(0xFFFFA000), // Material Amber
-                                        shape = CircleShape
-                                    )
-                            )
-                        } else {
-                            // No indicator for checked out records
-                            Spacer(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .width(8.dp)
-                            )
                         }
                     }
                 }

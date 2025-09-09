@@ -46,8 +46,13 @@ class PreferencesManager(context: Context) {
         }
     }
 
+    var syncIntervalHours: Int
+        get() = sharedPreferences.getInt(KEY_SYNC_INTERVAL_HOURS, 12) // default 12 hours
+        set(value) = sharedPreferences.edit { putInt(KEY_SYNC_INTERVAL_HOURS, value) }
+
     companion object {
         private const val PREFERENCES_NAME = "playmate_preferences"
+        private const val KEY_SYNC_INTERVAL_HOURS = "sync_interval_hours"
         private const val KEY_SYNC_ENABLED = "sync_enabled"
         private const val KEY_SYNC_TIME = "sync_time"
         private const val KEY_LAST_MEMBER_SYNC = "last_member_sync"

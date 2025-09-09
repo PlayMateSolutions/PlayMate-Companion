@@ -35,12 +35,9 @@ fun AuthScreen(
     // Initialize Google Sign-In with Android client configuration
     LaunchedEffect(Unit) {
         if (activity != null) {
-            viewModel.initGoogleSignIn(
+            viewModel.initialize(
                 context = context,
-                clientId = Constants.GOOGLE_CLIENT_ID
             )
-            // Check for existing sign-in
-            viewModel.checkExistingSignIn(activity)
         }
     }
 

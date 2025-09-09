@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Info
 import java.time.LocalTime
 import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
 import androidx.compose.material3.*
@@ -60,8 +62,12 @@ fun SettingsScreen(
     var clubId by remember { mutableStateOf(sessionManager.getSportsClubId() ?: "") }
     var syncEnabled by remember { mutableStateOf<Boolean>(preferencesManager.syncEnabled) }
     var syncTime by remember { mutableStateOf<LocalTime>(preferencesManager.syncTime) }
+    var syncInterval by remember { mutableStateOf(preferencesManager.syncIntervalHours) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showIntervalMenu by remember { mutableStateOf(false) }
     val authViewModel: AuthViewModel = viewModel()
+    
+    val syncIntervalOptions = listOf(1, 2, 4, 6, 8, 12, 24)
 
     Scaffold(
         topBar = {
@@ -87,6 +93,7 @@ fun SettingsScreen(
                             sessionManager.saveSportsClubId(clubId)
                             preferencesManager.syncEnabled = syncEnabled
                             preferencesManager.syncTime = syncTime
+                            preferencesManager.syncIntervalHours = syncInterval
                             DataSyncWorker.updateSchedule(context)
                             onSave()
                         },
@@ -119,18 +126,22 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp)
-                ) {
-                    OutlinedTextField(
-                        value = clubId,
-                        onValueChange = { clubId = it },
-                        label = { Text("Club ID") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                ListItem(
+                    headlineContent = {
+                        OutlinedTextField(
+                            value = clubId,
+                            onValueChange = { clubId = it },
+                            label = { Text("Club ID") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Business,
+                            contentDescription = "Club ID"
+                        )
+                    }
+                )
             }
 
             // Sync Settings Section
@@ -179,6 +190,38 @@ fun SettingsScreen(
                             )
                         }
                     )
+
+                    // Sync Interval Selector
+                    Box {
+                        ListItem(
+                            modifier = Modifier.clickable { showIntervalMenu = true },
+                            headlineContent = { Text("Sync Frequency") },
+                            supportingContent = {
+                                Text("Every ${syncInterval} hour${if (syncInterval > 1) "s" else ""}")
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = "Sync Interval"
+                                )
+                            }
+                        )
+
+                        DropdownMenu(
+                            expanded = showIntervalMenu,
+                            onDismissRequest = { showIntervalMenu = false }
+                        ) {
+                            syncIntervalOptions.forEach { hours ->
+                                DropdownMenuItem(
+                                    text = { Text("Every ${hours} hour${if (hours > 1) "s" else ""}") },
+                                    onClick = {
+                                        syncInterval = hours
+                                        showIntervalMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -236,8 +279,8 @@ fun SettingsScreen(
                 }
                 TextButton(
                     onClick = {
-                        authViewModel.signOut(context) {
-                            onLogout()
+                        authViewModel.signOut { 
+                            onLogout() 
                         }
                     },
                     colors = ButtonDefaults.textButtonColors(
@@ -258,23 +301,30 @@ fun SettingsScreen(
 
             // About Section
             SectionHeader(text = "About")
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "Version",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    appVersion,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            ListItem(
+                headlineContent = { 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Version",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            appVersion,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Version Info"
+                    )
+                }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -3,6 +3,9 @@ package com.jsramraj.playmatecompanion.android
 import android.app.Application
 import com.jsramraj.playmatecompanion.android.database.AppDatabase
 import com.jsramraj.playmatecompanion.android.sync.DataSyncWorker
+import com.jsramraj.playmatecompanion.android.auth.AuthViewModel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class PlayMateCompanionApp : Application() {
     // Database will be initialized lazily when needed
@@ -10,7 +13,12 @@ class PlayMateCompanionApp : Application() {
     
     override fun onCreate() {
         super.onCreate()
-        // Initialize the sync worker based on current settings
-        DataSyncWorker.updateSchedule(this)
+        
+        // Initialize AuthViewModel and check for existing sign-in
+        val authViewModel = AuthViewModel()
+        // Launch a coroutine to call the suspend function
+        GlobalScope.launch {
+            authViewModel.initialize(this@PlayMateCompanionApp)
+        }
     }
 }

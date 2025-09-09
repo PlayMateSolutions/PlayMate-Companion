@@ -87,8 +87,12 @@ class DataSyncWorker(
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
+            val preferencesManager = PreferencesManager(context)
+            val syncInterval = preferencesManager.syncIntervalHours
+            logManager.i("DataSync", "Setting up sync with interval of $syncInterval hours")
+            
             val dailyWorkRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(
-                12, TimeUnit.HOURS
+                syncInterval.toLong(), TimeUnit.HOURS
             )
                 .setConstraints(constraints)
                 .setInitialDelay(100, TimeUnit.MILLISECONDS)  // Set the initial delay

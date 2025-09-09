@@ -141,7 +141,7 @@ fun MembersScreen(
                         Icon(
                             imageVector = Icons.Default.Sync,
                             contentDescription = "Sync Status",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(

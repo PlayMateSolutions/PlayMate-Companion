@@ -75,7 +75,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
         
         viewModelScope.launch {
             try {
-                repository.syncAttendance(emptyList())  // Using default empty list as we're syncing all records
+                repository.syncUnsynced()
                 logManager.i("Attendance", "Attendance sync completed successfully")
                 _error.value = null
             } catch (e: Exception) {
