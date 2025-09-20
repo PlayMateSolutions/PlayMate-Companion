@@ -331,13 +331,19 @@ fun HomeScreen(
                             Column(
                                 modifier = Modifier.padding(16.dp)
                             ) {
+                                // Determine color for member name based on expiry status
+                                val memberNameColor = when {
+                                    welcomeInfo!!.daysToExpiry != null && welcomeInfo!!.daysToExpiry!! < 0 -> Color(0xFFD32F2F) // Red
+                                    welcomeInfo!!.daysToExpiry != null -> Color(0xFF388E3C) // Green
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
                                 Text(
                                     text = if (welcomeInfo!!.isCheckIn)
                                         "Welcome, ${welcomeInfo!!.memberName}!"
                                     else
                                         "Goodbye, ${welcomeInfo!!.memberName}!",
                                     style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = memberNameColor
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -364,6 +370,33 @@ fun HomeScreen(
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
+
+                                // Show days to expiry and expiry date if available
+                                if (welcomeInfo!!.daysToExpiry != null) {
+                                    val expiryDate = remember {
+                                        java.util.Calendar.getInstance().apply {
+                                            time = java.util.Date()
+                                            add(java.util.Calendar.DATE, welcomeInfo!!.daysToExpiry!!)
+                                        }.time
+                                    }
+                                    val expiryDateFormat = remember {
+                                        java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                                    }
+                                    if (welcomeInfo!!.daysToExpiry!! < 0) {
+                                        Text(
+                                            text = "Membership expired on ${expiryDateFormat.format(expiryDate)}. Please renew.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = memberNameColor
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Membership expires in ${welcomeInfo!!.daysToExpiry} day${if (welcomeInfo!!.daysToExpiry == 1) "" else "s"} (${expiryDateFormat.format(expiryDate)})",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = memberNameColor
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),

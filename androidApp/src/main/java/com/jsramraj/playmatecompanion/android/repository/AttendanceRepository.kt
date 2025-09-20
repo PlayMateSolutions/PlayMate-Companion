@@ -117,7 +117,7 @@ class AttendanceRepository(private val context: Context) {
             // Check if member already checked in today
             val existingAttendance = attendanceDao.getAttendanceForMemberOnDate(memberId, todayDatePrefix)
             
-            if (existingAttendance != null) {
+            if (existingAttendance != null && existingAttendance.checkOutTime == null) {
                 // Ignore if the last check-in is less than 1 minute ago
                 val lastCheckInTime = existingAttendance.checkInTime
                 val lastCheckInDate = try {

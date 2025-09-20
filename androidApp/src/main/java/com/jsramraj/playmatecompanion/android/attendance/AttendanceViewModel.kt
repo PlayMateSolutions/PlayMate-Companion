@@ -20,7 +20,8 @@ data class WelcomeCardInfo(
     val memberId: Long,
     val memberName: String,
     val isCheckIn: Boolean,
-    val timestamp: Date
+    val timestamp: Date,
+    val daysToExpiry: Int? = null
 )
 
 // Data class for grouped attendance records
@@ -179,11 +180,18 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                             
                             logManager.i("Attendance", "$action recorded for ${member.firstName} ${member.lastName} (ID: ${member.id})")
                             
+                            val expiryDate = member.expiryDate
+                            val today = Date()
+                            val daysToExpiry = if (expiryDate != null) {
+                                val diff = expiryDate.time - today.time
+                                (diff / (1000 * 60 * 60 * 24)).toInt()
+                            } else null
                             _welcomeInfo.value = WelcomeCardInfo(
                                 memberId = member.id,
                                 memberName = "${member.firstName} ${member.lastName}",
                                 isCheckIn = isCheckIn,
-                                timestamp = if (isCheckIn) attendance.checkInTime else checkOutTime!!
+                                timestamp = if (isCheckIn) attendance.checkInTime else checkOutTime!!,
+                                daysToExpiry = daysToExpiry
                             )
                             
                             if (isCheckIn) {
