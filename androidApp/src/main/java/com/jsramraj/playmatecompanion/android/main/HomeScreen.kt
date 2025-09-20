@@ -1,5 +1,6 @@
 package com.jsramraj.playmatecompanion.android.main
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -57,6 +58,24 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val logManager = remember { LogManager.getInstance(context) }
+
+    // TextToSpeech setup
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    var isTtsReady by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) {
+        tts = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = tts?.setLanguage(Locale("en", "IN")) // or Locale("ta", "IN")
+                isTtsReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED
+            } else {
+                isTtsReady = false
+            }
+        }
+        onDispose {
+            tts?.stop()
+            tts?.shutdown()
+        }
+    }
 
     // Log screen entry
     LaunchedEffect(Unit) {
@@ -302,14 +321,22 @@ fun HomeScreen(
                     // Welcome card for the member who just logged in
                     val welcomeInfo by attendanceViewModel.welcomeInfo.collectAsState()
 
-                    // Auto-dismiss welcome card after 5 seconds
+                    // Auto-dismiss welcome card after 5 seconds and speak welcome/goodbye
                     LaunchedEffect(welcomeInfo) {
                         if (welcomeInfo != null) {
-                            val action =
-                                if (welcomeInfo!!.isCheckIn) "checked in" else "checked out"
+                            val action = if (welcomeInfo!!.isCheckIn) "checked in" else "checked out"
                             val memberId = welcomeInfo!!.memberId
                             val memberName = welcomeInfo!!.memberName
                             logManager.i("HomeScreen", "$memberName (ID: $memberId) $action")
+                            // Speak welcome/goodbye
+                            val speakText = if (welcomeInfo!!.isCheckIn) {
+                                "Welcome, $memberName"
+                            } else {
+                                "Goodbye, $memberName"
+                            }
+                            if (isTtsReady) {
+                                tts?.speak(speakText, TextToSpeech.QUEUE_FLUSH, null, "welcome_id")
+                            }
                             kotlinx.coroutines.delay(5000) // 5 seconds
                             attendanceViewModel.clearWelcomeInfo()
                             focusRequester.requestFocus()
