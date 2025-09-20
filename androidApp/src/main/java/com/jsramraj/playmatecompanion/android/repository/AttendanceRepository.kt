@@ -118,6 +118,22 @@ class AttendanceRepository(private val context: Context) {
             val existingAttendance = attendanceDao.getAttendanceForMemberOnDate(memberId, todayDatePrefix)
             
             if (existingAttendance != null) {
+                // Ignore if the last check-in is less than 1 minute ago
+                val lastCheckInTime = existingAttendance.checkInTime
+                val lastCheckInDate = try {
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                        timeZone = TimeZone.getTimeZone("UTC")
+                    }.parse(lastCheckInTime)
+                } catch (e: Exception) {
+                    null
+                }
+                if (lastCheckInDate != null) {
+                    val diffMillis = now.time - lastCheckInDate.time
+                    if (diffMillis < 60_000) {
+                        // Ignore if less than 1 minute old
+                        return@withContext Result.failure(Exception("Check-out ignored: last check-in was less than 1 minute ago."))
+                    }
+                }
                 // Member already checked in, update check-out time
                 val updatedAttendance = existingAttendance.copy(
                     checkOutTime = formatDate(now),
