@@ -35,9 +35,9 @@ class NetworkHelper(private val context: Context) {
                     }
 
                     val url =
-                            URL(
-                                    "${Constants.BASE_URL}?sportsClubId=$clubId&action=recordBulkAttendance&authorization=Bearer $token"
-                            )
+                        URL(
+                            "${sessionManager.getEffectiveBaseUrl()}?sportsClubId=$clubId&action=recordBulkAttendance&authorization=Bearer $token"
+                        )
                     val connection = url.openConnection() as HttpURLConnection
 
                     connection.apply {
@@ -91,9 +91,9 @@ class NetworkHelper(private val context: Context) {
                     }
 
                     val url =
-                            URL(
-                                    "${Constants.BASE_URL}?sportsClubId=$clubId&action=getMembers&authorization=Bearer $token"
-                            )
+                        URL(
+                            "${sessionManager.getEffectiveBaseUrl()}?sportsClubId=$clubId&action=getMembers&authorization=Bearer $token"
+                        )
                     val connection = url.openConnection() as HttpURLConnection
 
                     connection.apply {

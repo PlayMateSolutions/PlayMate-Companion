@@ -60,6 +60,7 @@ fun SettingsScreen(
     val appVersion = remember { AppInfo.getVersionName(context) }
     val logManager = remember { LogManager.getInstance(context) }
     var clubId by remember { mutableStateOf(sessionManager.getSportsClubId() ?: "") }
+    var baseUrl by remember { mutableStateOf(sessionManager.getBaseUrl() ?: "") }
     var syncEnabled by remember { mutableStateOf<Boolean>(preferencesManager.syncEnabled) }
     var syncTime by remember { mutableStateOf<LocalTime>(preferencesManager.syncTime) }
     var syncInterval by remember { mutableStateOf(preferencesManager.syncIntervalHours) }
@@ -91,6 +92,7 @@ fun SettingsScreen(
                     IconButton(
                         onClick = {
                             sessionManager.saveSportsClubId(clubId)
+                            sessionManager.saveBaseUrl(baseUrl)
                             preferencesManager.syncEnabled = syncEnabled
                             preferencesManager.syncTime = syncTime
                             preferencesManager.syncIntervalHours = syncInterval
@@ -139,6 +141,23 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.Business,
                             contentDescription = "Club ID"
+                        )
+                    }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ListItem(
+                    headlineContent = {
+                        OutlinedTextField(
+                            value = baseUrl,
+                            onValueChange = { baseUrl = it },
+                            label = { Text("Base URL (leave blank for default)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Base URL"
                         )
                     }
                 )

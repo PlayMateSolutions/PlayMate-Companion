@@ -98,7 +98,7 @@ fun AuthScreen(
 
                     // Welcome Text
                     Text(
-                        text = "Welcome to PlayMate",
+                        text = "Welcome to GymMate",
                         style = MaterialTheme.typography.headlineMedium,
                         textAlign = TextAlign.Center
                     )

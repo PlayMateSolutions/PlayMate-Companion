@@ -38,10 +38,11 @@ class AuthViewModel : ViewModel() {
                 .requestIdToken(Constants.GOOGLE_CLIENT_ID)
                 .requestEmail()
                 .requestProfile()
-                .requestScopes(
-                    Scope("https://www.googleapis.com/auth/spreadsheets"),
-                    Scope("https://www.googleapis.com/auth/script.external_request")
-                )
+//                .requestScopes(
+//                    Scope("https://https://www.googleapis.com/auth/drive.file")
+//                    Scope("https://www.googleapis.com/auth/spreadsheets"),
+//                    Scope("https://www.googleapis.com/auth/script.external_request")
+//                )
                 .build()
 
             googleSignInClient = GoogleSignIn.getClient(context, gso)

@@ -59,7 +59,7 @@ fun MainScreen(
                 TopAppBar(
                     title = { 
                         Text(
-                            "PlayMate Companion",
+                            "GymMate Companion",
                             color = MaterialTheme.colorScheme.onPrimary
                         ) 
                     },

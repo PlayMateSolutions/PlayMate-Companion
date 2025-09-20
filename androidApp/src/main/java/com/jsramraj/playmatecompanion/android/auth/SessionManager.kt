@@ -19,6 +19,22 @@ class SessionManager(context: Context) {
         private const val KEY_REFRESH_TOKEN = "refreshToken"
         private const val KEY_TOKEN_EXPIRY = "tokenExpiry"
         private const val KEY_SPORTS_CLUB_ID = "sportsClubId"
+        private const val KEY_BASE_URL = "baseUrl"
+    }
+
+    fun saveBaseUrl(url: String) {
+        prefs.edit {
+            putString(KEY_BASE_URL, url)
+        }
+    }
+
+    fun getBaseUrl(): String? = prefs.getString(KEY_BASE_URL, null)
+
+    /**
+     * Returns the base URL from preferences if set, otherwise returns the default from Constants.
+     */
+    fun getEffectiveBaseUrl(): String {
+        return getBaseUrl()?.takeIf { it.isNotBlank() } ?: com.jsramraj.playmatecompanion.android.core.Constants.BASE_URL
     }
 
     fun saveSession(account: GoogleSignInAccount) {
