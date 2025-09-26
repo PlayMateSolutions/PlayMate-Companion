@@ -219,10 +219,10 @@ fun AttendanceListScreen(
         // Log unsynced records for debugging
         LaunchedEffect(record.attendance.synced) {
             if (!record.attendance.synced) {
-                logManager.w(
-                    "AttendanceList",
-                    "Unsynced attendance record found for member ${record.memberName} (ID: ${record.attendance.memberId})"
-                )
+//                logManager.w(
+//                    "AttendanceList",
+//                    "Unsynced attendance record found for member ${record.memberName} (ID: ${record.attendance.memberId})"
+//                )
             }
         }
 

@@ -101,7 +101,7 @@ class AttendanceRepository(private val context: Context) {
     }
     
     // Log attendance (check-in or check-out)
-    suspend fun logAttendance(memberId: Long): Result<Attendance> = withContext(Dispatchers.IO) {
+    suspend fun logAttendance(memberId: Long, notes: String): Result<Attendance> = withContext(Dispatchers.IO) {
         try {
             // Verify member exists
             val member = memberDao.getMemberById(memberId)
@@ -115,9 +115,9 @@ class AttendanceRepository(private val context: Context) {
             val todayDatePrefix = dateFormat.format(now)
             
             // Check if member already checked in today
-            val existingAttendance = attendanceDao.getAttendanceForMemberOnDate(memberId, todayDatePrefix)
+            val existingAttendance = attendanceDao.getAttendanceForMemberOnDate(memberId, todayDatePrefix, notes)
             
-            if (existingAttendance != null && existingAttendance.checkOutTime == null) {
+            if (existingAttendance != null) {
                 // Ignore if the last check-in is less than 1 minute ago
                 val lastCheckInTime = existingAttendance.checkInTime
                 val lastCheckInDate = try {
@@ -129,8 +129,8 @@ class AttendanceRepository(private val context: Context) {
                 }
                 if (lastCheckInDate != null) {
                     val diffMillis = now.time - lastCheckInDate.time
-                    if (diffMillis < 60_000) {
-                        // Ignore if less than 1 minute old
+                    if (diffMillis < 10_000) {
+                        // Ignore if less than 10 seconds old
                         return@withContext Result.failure(Exception("Check-out ignored: last check-in was less than 1 minute ago."))
                     }
                 }
@@ -149,7 +149,7 @@ class AttendanceRepository(private val context: Context) {
                     checkInTime = formatDate(now),
                     checkOutTime = null,
                     daysToExpiry = calculateDaysToExpiry(member.expiryDate),
-                    notes = "",
+                    notes = notes,
                     synced = false
                 )
                 val id = attendanceDao.insertAttendance(attendance)
@@ -168,11 +168,16 @@ class AttendanceRepository(private val context: Context) {
             
             if (memberIdResult.isSuccess) {
                 val memberId = memberIdResult.getOrThrow()
-                return@withContext logAttendance(memberId)
+                return@withContext logAttendance(memberId, "")
             } else {
-                return@withContext Result.failure(
-                    Exception("Member not found with identifier: $identifier")
-                )
+                val unknownResult = logAttendance(-1, identifier)
+                return@withContext if (unknownResult.isSuccess) {
+                    Result.failure(
+                        Exception("Hello $identifier! We couldn't find your details. Your attendance has been logged as a guest. Please contact the admin to update your information.")
+                    )
+                } else {
+                    unknownResult
+                }
             }
         } catch (e: Exception) {
             Result.failure(Exception("Error logging attendance: ${e.message}"))

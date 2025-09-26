@@ -204,7 +204,6 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                             _message.value = "Attendance recorded for member #${attendance.memberId}"
                         }
                         
-                        _inputText.value = ""
                     },
                     onFailure = { exception ->
                         logManager.e("Attendance", "Failed to process attendance: ${exception.message}")
@@ -214,6 +213,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
             } catch (e: Exception) {
                 setErrorMessage("Error: ${e.message ?: "Unknown error"}")
             } finally {
+                _inputText.value = ""
                 _isLoading.value = false
             }
         }

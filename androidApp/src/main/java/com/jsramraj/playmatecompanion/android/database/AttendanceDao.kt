@@ -28,8 +28,8 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendance WHERE memberId = :memberId ORDER BY date DESC")
     fun getAttendanceByMemberId(memberId: Int): Flow<List<AttendanceEntity>>
     
-    @Query("SELECT * FROM attendance WHERE date LIKE :datePrefix || '%' AND memberId = :memberId ORDER BY checkInTime DESC LIMIT 1")
-    suspend fun getAttendanceForMemberOnDate(memberId: Long, datePrefix: String): AttendanceEntity?
+    @Query("SELECT * FROM attendance WHERE date LIKE :datePrefix || '%' AND memberId = :memberId AND notes = :notes ORDER BY checkInTime DESC LIMIT 1")
+    suspend fun getAttendanceForMemberOnDate(memberId: Long, datePrefix: String, notes: String): AttendanceEntity?
     
     @Query("UPDATE attendance SET synced = 1 WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<Long>)

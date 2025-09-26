@@ -18,6 +18,7 @@ import java.time.LocalTime
 import com.jsramraj.playmatecompanion.android.preferences.PreferencesManager
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.jsramraj.playmatecompanion.android.components.LogViewer
 import com.jsramraj.playmatecompanion.android.utils.LogManager
@@ -262,11 +263,10 @@ fun SettingsScreen(
 
             // Account Section
             SectionHeader(text = "Account")
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(16.dp)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -278,16 +278,20 @@ fun SettingsScreen(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     )
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             sessionInfo.userName ?: "",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
                             sessionInfo.userEmail ?: "",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
                             "Google Account",
@@ -296,6 +300,7 @@ fun SettingsScreen(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
                 TextButton(
                     onClick = {
                         authViewModel.signOut { 
@@ -304,7 +309,8 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
-                    )
+                    ),
+                    modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("LOGOUT")
                 }
